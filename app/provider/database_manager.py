@@ -73,12 +73,12 @@ class DatabaseManager:
         params = (data["meeting_name"], data["name"], data["group"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
         return query, params
     
-    def _build_insert_attendee_attendance_info_table_query(self, data: dict) -> tuple[str, tuple]:
+    def _build_update_attendee_attendance_info_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO attendee (attendance_status, initial_attendance_time, connected_device)
-            VALUES (%s, %s, %s)
+            UPDATE attendee SET attendance_status = %s, initial_attendance_time = %s, connected_device = %s
+            WHERE name = %s AND email_address = %s
         """
-        params = (data["meeting_name"], data["name"], data["group"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
+        params = (data["attendance_status"], data["initial_attendance_time"], data["connected_device"], data["name"], data["email_address"])
         return query, params
     
     def _build_select_all_meeting_table_query(self) -> str:
@@ -154,8 +154,8 @@ class DatabaseManager:
         query, params = self._build_insert_attendee_info_table_query(data)        
         self._execute_commit_query(query, params)
 
-    def insert_attendee_attendance_info_table(self, data: dict) -> None:
-        query, params = self._build_insert_attendee_attendance_info_table_query(data)        
+    def update_attendee_attendance_info_table(self, data: dict) -> None:
+        query, params = self._build_update_attendee_attendance_info_table_query(data)        
         self._execute_commit_query(query, params)
     
     def select_all_meeting_table(self) -> List[Any]:
