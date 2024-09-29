@@ -51,24 +51,35 @@ class DatabaseManager:
             email_address TEXT,
             role TEXT,
             email_delivery_status BOOL,
+            attendance_status BOOL,
+            initial_attendance_time TEXT,
+            connected_device TEXT
         )
         """
     
     def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO complaint (name, time, room, subject, topic)
+            INSERT INTO meeting (name, time, room, subject, topic)
             VALUES (%s, %s, %s, %s, %s)
         """
         params = (data["name"], data["time"], data["room"], data["subject"], data["topic"])
         return query, params
 
-    def _build_insert_attendee_table_query(self, data: dict) -> tuple[str, tuple]:
+    def _build_insert_attendee_info_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO complaint (meeting_name, name, group, position, email_address, role, email_delivery_status)
+            INSERT INTO attendee (meeting_name, name, group, position, email_address, role, email_delivery_status)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         params = (data["meeting_name"], data["name"], data["group"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
-        return query, params        
+        return query, params
+    
+    def _build_insert_attendee_attendance_info_table_query(self, data: dict) -> tuple[str, tuple]:
+        query = """
+            INSERT INTO attendee (attendance_status, initial_attendance_time, connected_device)
+            VALUES (%s, %s, %s)
+        """
+        params = (data["meeting_name"], data["name"], data["group"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
+        return query, params
     
     def _build_select_all_meeting_table_query(self) -> str:
         return f"""
@@ -139,8 +150,12 @@ class DatabaseManager:
         query, params = self._build_insert_meeting_table_query(data)        
         self._execute_commit_query(query, params)
 
-    def insert_attendee_table(self, data: dict) -> None:
-        query, params = self._build_insert_meeting_table_query(data)        
+    def insert_attendee_info_table(self, data: dict) -> None:
+        query, params = self._build_insert_attendee_info_table_query(data)        
+        self._execute_commit_query(query, params)
+
+    def insert_attendee_attendance_info_table(self, data: dict) -> None:
+        query, params = self._build_insert_attendee_attendance_info_table_query(data)        
         self._execute_commit_query(query, params)
     
     def select_all_meeting_table(self) -> List[Any]:
