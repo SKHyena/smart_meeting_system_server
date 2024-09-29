@@ -4,14 +4,11 @@ import logging
 import time
 from typing import List
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
-from .model.dialogue import Dialogue
-from .model.utterance import Utterance
-from .util.time_util import TimeUtil
 
 
 app = FastAPI()

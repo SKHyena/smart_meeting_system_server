@@ -28,153 +28,131 @@ class DatabaseManager:
             charset="utf8",
         )
     
-    def _build_create_complaint_table_query(self) -> str:
+    def _build_create_meeting_table_query(self) -> str:
         return f"""
-        CREATE TABLE IF NOT EXISTS complaint (
+        CREATE TABLE IF NOT EXISTS meeting (
             id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            timestamp BIGINT,
-            speaker TEXT,
-            origin_text TEXT,
-            translated_text TEXT,
-            locale TEXT NOT NULL
+            name TEXT,
+            time TEXT,
+            room TEXT,
+            subject TEXT,
+            topic TEXT
         )
         """
     
-    def _build_create_total_complaint_table_query(self) -> str:
+    def _build_create_attendee_table_query(self) -> str:
         return f"""
-        CREATE TABLE IF NOT EXISTS totalcomplaint (
+        CREATE TABLE IF NOT EXISTS attendee (
             id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            summary TEXT,
-            category TEXT,
-            dialogue TEXT NOT NULL
+            meeting_name TEXT,
+            name TEXT,
+            group TEXT,
+            position TEXT,
+            email_address TEXT,
+            role TEXT,
+            email_delivery_status BOOL,
         )
         """
     
-    def _build_insert_complaint_table_query(self, data: dict) -> tuple[str, tuple]:
+    def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO complaint (timestamp, speaker, origin_text, translated_text, locale)
+            INSERT INTO complaint (name, time, room, subject, topic)
             VALUES (%s, %s, %s, %s, %s)
         """
-        params = (data["timestamp"], data["speaker"], data["origin_text"], data["translated_text"], data["locale"])
-        return query, params
-    
-    def _build_insert_total_complaint_table_query(self, data: dict) -> tuple[str, tuple]:
-        query = """
-            INSERT INTO totalcomplaint (summary, category, dialogue)
-            VALUES (%s, %s, %s)
-        """
-        params = (data["summary"], data["category"], data["dialogue"])
+        params = (data["name"], data["time"], data["room"], data["subject"], data["topic"])
         return query, params
 
-    def _build_select_complaint_table_query(self, id: str) -> str:
+    def _build_insert_attendee_table_query(self, data: dict) -> tuple[str, tuple]:
+        query = """
+            INSERT INTO complaint (meeting_name, name, group, position, email_address, role, email_delivery_status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        params = (data["meeting_name"], data["name"], data["group"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
+        return query, params        
+    
+    def _build_select_all_meeting_table_query(self) -> str:
         return f"""
-            SELECT * FROM complaint where id={id}
+            SELECT * FROM meeting ORDER BY id desc
         """
     
-    def _build_select_all_complaint_table_query(self) -> str:
+    def _build_select_all_attendee_table_query(self) -> str:
         return f"""
-            SELECT * FROM complaint
+            SELECT * FROM attendee ORDER BY id desc
         """
     
-    def _build_select_total_complaint_table_query(self, id: str) -> str:
-        return f"""
-            SELECT * FROM totalcomplaint where id={id}
+    def _build_delete_attendee_table_query(self, data: dict) -> tuple[str, tuple]:
+        query = """
+            DELETE FROM attendee WHERE name = %s AND email_address = %s
         """
+        params = (data["name"], data["email_address"])
+        return query, params
+        
+    def _build_drop_meeting_table_query(self) -> str:
+        return "DROP TABLE IF EXISTS meeting"
     
-    def _build_select_all_total_complaint_table_query(self) -> str:
-        return f"""
-            SELECT * FROM totalcomplaint ORDER BY id desc
-        """
-    
-    def _build_drop_complaint_table_query(self) -> str:
-        return "DROP TABLE IF EXISTS complaint"
-    
-    def _build_drop_total_complaint_table_query(self) -> str:
-        return "DROP TABLE IF EXISTS totalcomplaint"
-    
+    def _build_drop_attendee_table_query(self) -> str:
+        return "DROP TABLE IF EXISTS attendee"
+        
     def _execute_query(self, query: str) -> int:
         with self._get_connetion() as connection:
             cursor = connection.cursor(pymysql.cursors.DictCursor)
             return cursor.execute(query)
-
-    def create_complaint_table(self) -> int:
-        create_table_query = self._build_create_complaint_table_query()
         
-        return self._execute_query(create_table_query)
-    
-    def create_total_complaint_table(self) -> int:
-        create_table_query = self._build_create_total_complaint_table_query()
+    def _execute_select_query(self, select_table_query):
+        with self._get_connetion() as connection:
+            cursor = connection.cursor(pymysql.cursors.DictCursor)
+            cursor.execute(select_table_query)        
+            data = cursor.fetchall()
+            self.logger.info(data)
 
-        return self._execute_query(create_table_query)
-        
-    def drop_complaint_table(self) -> int:
-        drop_table_query = self._build_drop_complaint_table_query()
-
-        return self._execute_query(drop_table_query)
+            return data
     
-    def drop_total_complaint_table(self) -> int:
-        drop_table_query = self._build_drop_total_complaint_table_query()
-
-        return self._execute_query(drop_table_query)
-    
-    def insert_complaint_table(self, data: dict) -> None:
-        query, params = self._build_insert_complaint_table_query(data)
-        self.logger.info("Executing query: %s with params: %s", query, params)
+    def _execute_commit_query(self, query, params):
+        self.logger.info(f"Executing query: {query} with params: {params}")
 
         with self._get_connetion() as connection:
             cursor = connection.cursor()
             cursor.execute(query, params)
             connection.commit()
 
-    def insert_total_complaint_table(self, data: dict) -> None:
-        query, params = self._build_insert_total_complaint_table_query(data)
-        self.logger.info("Executing query: %s with params: %s", query, params)
-
-        with self._get_connetion() as connection:
-            cursor = connection.cursor()
-            cursor.execute(query, params)
-            connection.commit()
-    
-    def select_all_complaint_table(self) -> List[Any]:
-        select_table_query = self._build_select_all_complaint_table_query()
-
-        with self._get_connetion() as connection:
-            cursor = connection.cursor(pymysql.cursors.DictCursor)
-            cursor.execute(select_table_query)        
-            data = cursor.fetchall()
-            self.logger.info(data)
-
-            return data
+    def create_meeting_table(self) -> int:
+        create_table_query = self._build_create_meeting_table_query()
         
-    def select_all_total_complaint_table(self) -> List[Any]:
-        select_table_query = self._build_select_all_total_complaint_table_query()
-
-        with self._get_connetion() as connection:
-            cursor = connection.cursor(pymysql.cursors.DictCursor)
-            cursor.execute(select_table_query)        
-            data = cursor.fetchall()
-            self.logger.info(data)
-
-            return data
-
-    def select_complaint_table_with_id(self, id: int) -> List[Any]:
-        select_table_query = self._build_select_complaint_table_query(id)
-
-        with self._get_connetion() as connection:
-            cursor = connection.cursor(pymysql.cursors.DictCursor)
-            cursor.execute(select_table_query)        
-            data = cursor.fetchall()
-            self.logger.info(data)
-
-            return data
+        return self._execute_query(create_table_query)
     
-    def select_total_complaint_table_with_id(self, id: int) -> List[Any]:
-        select_table_query = self._build_select_total_complaint_table_query(id)
+    def create_attendee_table(self) -> int:
+        create_table_query = self._build_create_attendee_table_query()
+        
+        return self._execute_query(create_table_query)
+            
+    def drop_meeting_table(self) -> int:
+        drop_table_query = self._build_drop_meeting_table_query()
 
-        with self._get_connetion() as connection:
-            cursor = connection.cursor(pymysql.cursors.DictCursor)
-            cursor.execute(select_table_query)        
-            data = cursor.fetchall()
-            self.logger.info(data)
+        return self._execute_query(drop_table_query)
+    
+    def drop_attendee_table(self) -> int:
+        drop_table_query = self._build_drop_attendee_table_query()
 
-            return data
+        return self._execute_query(drop_table_query)
+    
+    def insert_meeting_table(self, data: dict) -> None:
+        query, params = self._build_insert_meeting_table_query(data)        
+        self._execute_commit_query(query, params)
+
+    def insert_attendee_table(self, data: dict) -> None:
+        query, params = self._build_insert_meeting_table_query(data)        
+        self._execute_commit_query(query, params)
+    
+    def select_all_meeting_table(self) -> List[Any]:
+        select_table_query = self._build_select_all_meeting_table_query()
+
+        return self._execute_select_query(select_table_query)
+    
+    def select_all_attendee_table(self) -> List[Any]:
+        select_table_query = self._build_select_all_attendee_table_query()
+
+        return self._execute_select_query(select_table_query)
+
+    def delete_attendee_table_with_id(self, data: dict) -> None:
+        query, params = self._build_delete_attendee_table_query(data)
+        self._execute_commit_query(query, params)
