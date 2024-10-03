@@ -6,7 +6,8 @@ from .attendee import Attendee
 
 class Reservation(BaseModel):    
     name: str
-    time: str
+    start_time: str
+    end_time: str
     room: str
     subject: str
     topic: str

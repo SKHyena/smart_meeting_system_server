@@ -37,7 +37,8 @@ def is_blank_or_none(value: str):
 async def reserve(data: Reservation):
     meeting_info: dict = {
         "name": data.name if is_blank_or_none(data.name) else "no_name",
-        "time": data.time if is_blank_or_none(data.time) else "no_time",
+        "start_time": data.start_time if is_blank_or_none(data.start_time) else "no_start_time",
+        "end_time": data.end_time if is_blank_or_none(data.end_time) else "no_end_time",
         "room": data.room if is_blank_or_none(data.room) else "no_room",
         "subject": data.subject if is_blank_or_none(data.subject) else "no_subject",
         "topic": data.topic if is_blank_or_none(data.topic) else "no_topic",
@@ -56,6 +57,16 @@ async def reserve(data: Reservation):
                 "email_delivery_status": attendee.email_delivery_status
             }
         )
+
+@app.get("/meeting_detail")
+async def get_meeting_detail():
+    meetings: List[dict] = db_manager.select_all_meeting_table()
+    meeting: dict = meetings.pop()
+
+    attendees: List[dict] = db_manager.select_all_attendee_table()
+
+    return json.dumps({"meeting": meeting, "attendees": attendees})
+
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):

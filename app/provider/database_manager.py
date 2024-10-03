@@ -33,7 +33,8 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS meeting (
             id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             name TEXT,
-            time TEXT,
+            start_time TEXT,
+            end_time TEXT,
             room TEXT,
             subject TEXT,
             topic TEXT
@@ -59,10 +60,10 @@ class DatabaseManager:
     
     def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO meeting (name, time, room, subject, topic)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO meeting (name, start_time, end_time, room, subject, topic)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
-        params = (data["name"], data["time"], data["room"], data["subject"], data["topic"])
+        params = (data["name"], data["start_time"], data["end_time"], data["room"], data["subject"], data["topic"])
         return query, params
 
     def _build_insert_attendee_info_table_query(self, data: dict) -> tuple[str, tuple]:
