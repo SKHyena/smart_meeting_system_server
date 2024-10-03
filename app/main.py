@@ -9,6 +9,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
+from .model.reservation import Reservation
 
 
 app = FastAPI()
@@ -25,6 +26,36 @@ db_manager = DatabaseManager(
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
 
+def is_blank_or_none(value: str):
+    if value is None or value == "'":
+        return True
+    
+    return False
+
+
+@app.post("/reserve")
+async def reserve(data: Reservation):
+    meeting_info: dict = {
+        "name": data.name if is_blank_or_none(data.name) else "no_name",
+        "time": data.time if is_blank_or_none(data.time) else "no_time",
+        "room": data.room if is_blank_or_none(data.room) else "no_room",
+        "subject": data.subject if is_blank_or_none(data.subject) else "no_subject",
+        "topic": data.topic if is_blank_or_none(data.topic) else "no_topic",
+    }
+    db_manager.insert_meeting_table(meeting_info)    
+
+    for attendee in data.attendees:
+        db_manager.insert_attendee_info_table(
+            {
+                "meeting_name": f"{meeting_info["name"]}_{meeting_info["time"]}",
+                "name": attendee.name,
+                "group": attendee.group,
+                "position": attendee.position,
+                "email_address": attendee.email_address,
+                "role": attendee.role,
+                "email_delivery_status": attendee.email_delivery_status
+            }
+        )
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
