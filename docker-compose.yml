@@ -3,8 +3,8 @@ version: "3.3"
 services:
   fastapi:
     image: smart_meeting_system_server
-    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
     ports:
-      - 80:80
+      - 8080:8080
     volumes:
       - ./app:/code/app
