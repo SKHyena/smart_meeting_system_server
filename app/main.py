@@ -69,7 +69,7 @@ async def get_meeting_detail():
 
     attendees: List[dict] = db_manager.select_all_attendee_table()
 
-    return json.dumps({"meeting": meeting, "attendees": attendees})
+    return {"meeting": meeting, "attendees": attendees}
 
 
 @app.websocket("/ws/{client_id}")
