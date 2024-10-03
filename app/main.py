@@ -2,7 +2,7 @@ import json
 import os
 import logging
 import time
-from typing import List
+from typing import List, Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
@@ -38,29 +38,15 @@ def is_blank_or_none(value: str):
 
 
 @app.post("/reserve")
-async def reserve(data: Reservation):
-    meeting_info: dict = {
-        "name": data.name if is_blank_or_none(data.name) else "no_name",
-        "start_time": data.start_time if is_blank_or_none(data.start_time) else "no_start_time",
-        "end_time": data.end_time if is_blank_or_none(data.end_time) else "no_end_time",
-        "room": data.room if is_blank_or_none(data.room) else "no_room",
-        "subject": data.subject if is_blank_or_none(data.subject) else "no_subject",
-        "topic": data.topic if is_blank_or_none(data.topic) else "no_topic",
-    }
-    db_manager.insert_meeting_table(meeting_info)    
+async def reserve(data: Reservation):    
+    meeting_info: dict[str, Any] = data.model_dump()
+    db_manager.insert_meeting_table(meeting_info)
 
     for attendee in data.attendees:
-        db_manager.insert_attendee_info_table(
-            {
-                "meeting_name": f"{meeting_info['name']}_{meeting_info['time']}",
-                "name": attendee.name,
-                "group": attendee.group,
-                "position": attendee.position,
-                "email_address": attendee.email_address,
-                "role": attendee.role,
-                "email_delivery_status": attendee.email_delivery_status
-            }
-        )
+        attendee_dict = attendee.model_dump()
+        attendee_dict["meeting_name"] = f"{meeting_info['name']}_{meeting_info['time']}"
+        
+        db_manager.insert_attendee_info_table(attendee_dict)
 
 @app.get("/meeting_detail")
 async def get_meeting_detail():
