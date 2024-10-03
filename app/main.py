@@ -47,7 +47,7 @@ async def reserve(data: Reservation):
     for attendee in data.attendees:
         db_manager.insert_attendee_info_table(
             {
-                "meeting_name": f"{meeting_info["name"]}_{meeting_info["time"]}",
+                "meeting_name": f"{meeting_info['name']}_{meeting_info['time']}",
                 "name": attendee.name,
                 "group": attendee.group,
                 "position": attendee.position,
