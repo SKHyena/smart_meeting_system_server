@@ -100,14 +100,13 @@ async def get_meeting_detail():
 
 @app.post("/download_file")
 async def download_file(file_info: FileInfo):    
-    try:        
-        decoded_file_name = file_info.file_name.encode("utf-8").decode("iso-8859-1")
-        logger.info(f"file name : {decoded_file_name}")
-        s3_object = s3_client.get_object(Bucket="ggd-bucket01", Key=decoded_file_name)
+    try:                
+        logger.info(f"file name : {file_info.file_name}")
+        s3_object = s3_client.get_object(Bucket="ggd-bucket01", Key=file_info.file_name)
         return StreamingResponse(
             io.BytesIO(s3_object['Body'].read()), 
             media_type="application/octet-stream", 
-            headers={"Content-Disposition": f"attachment; filename={decoded_file_name}"},
+            headers={"Content-Disposition": f"attachment; filename*=utf-8'{file_info.file_name}'"},
         )
     except NoCredentialsError:
         raise HTTPException(status_code=401, detail="AWS Credentials not available")
