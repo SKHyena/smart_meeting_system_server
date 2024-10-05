@@ -1,8 +1,10 @@
+import shutil
 import json
 import os
 import logging
 import time
 from typing import List, Any
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File
 
@@ -36,6 +38,10 @@ os_handler = ObjectStorageHandler(
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
 
+save_dir = Path("/root/smart_meeting_system_server/tmp")
+save_dir.mkdir(parents=True, exist_ok=True)
+
+
 def is_blank_or_none(value: str):
     if value is None or value == "'":
         return True
@@ -58,8 +64,12 @@ async def reserve(
         attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['start_time']}"
         db_manager.insert_attendee_info_table(attendee)
 
-    for file in files:        
-        os_handler.put_object("ggd-bucket01", file.filename, await file.read())
+    for file in files:                
+        file_path = save_dir / file.filename
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
 
 
 @app.get("/meeting_detail")
