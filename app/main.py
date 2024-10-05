@@ -109,7 +109,7 @@ async def reserve(
         try:
             s3_client.put_object(
                 Bucket="ggd-bucket01",
-                Key=file.name,
+                Key=file.filename,
                 Body=file.file  # 업로드 파일 내용
             )
         except NoCredentialsError:
