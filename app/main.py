@@ -4,7 +4,7 @@ import logging
 import time
 from typing import List, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File
 
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
@@ -38,15 +38,36 @@ def is_blank_or_none(value: str):
 
 
 @app.post("/reserve")
-async def reserve(data: Reservation):    
+async def reserve(data: Reservation):
     meeting_info: dict[str, Any] = data.model_dump()
     db_manager.insert_meeting_table(meeting_info)
 
     for attendee in data.attendees:
         attendee_dict = attendee.model_dump()
         attendee_dict["meeting_name"] = f"{meeting_info['name']}_{meeting_info['time']}"
-        
+
         db_manager.insert_attendee_info_table(attendee_dict)
+
+@app.post("/reserve2")
+async def reserve(
+    reserve_data: str = Form(...),
+    attendees_data: str = Form(...),
+    files: List[UploadFile] = File(...),
+):
+    meeting_info: dict[str, Any] = json.loads(reserve_data)
+    db_manager.insert_meeting_table(meeting_info)
+
+    attendees: List[dict[str, Any]] = json.loads(attendees_data)
+
+    for attendee in attendees:    
+        attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['time']}"
+        db_manager.insert_attendee_info_table(attendee)
+
+    # File 처리합시다.
+    for file in files:
+        content = await file.read()
+
+
 
 @app.get("/meeting_detail")
 async def get_meeting_detail():
