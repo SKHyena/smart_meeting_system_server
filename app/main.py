@@ -75,13 +75,18 @@ async def reserve(
         db_manager.insert_attendee_info_table(attendee)
 
     for file in files:                
-        file_path = save_dir / file.filename
-
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        time.sleep(1)
-
-        os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
+        try:
+            s3_client.put_object(
+                Bucket="ggd-bucket01",
+                Key=file.filename,
+                Body=file.file,
+            )
+        except NoCredentialsError:
+            raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
+        except PartialCredentialsError:
+            raise HTTPException(status_code=401, detail="Incomplete Naver Cloud credentials")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 
 @app.get("/meeting_detail")
