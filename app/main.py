@@ -108,7 +108,7 @@ async def download_file(file_info: FileInfo):
         return StreamingResponse(
             io.BytesIO(s3_object['Body'].read()), 
             media_type="application/octet-stream", 
-            headers={"Content-Disposition": f"attachment; filename*=utf-8'{urllib.parse.quote(file_info.file_name)}'"},
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8\'\'{urllib.parse.quote(file_info.file_name)}"},
         )
     except NoCredentialsError:
         raise HTTPException(status_code=401, detail="AWS Credentials not available")
