@@ -37,7 +37,8 @@ class DatabaseManager:
             end_time TEXT,
             room TEXT,
             subject TEXT,
-            topic TEXT
+            topic TEXT,
+            files TEXT
         )
         """
     
@@ -60,10 +61,10 @@ class DatabaseManager:
     
     def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO meeting (name, start_time, end_time, room, subject, topic)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO meeting (name, start_time, end_time, room, subject, topic, files)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        params = (data["name"], data["start_time"], data["end_time"], data["room"], data["subject"], data["topic"])
+        params = (data["name"], data["start_time"], data["end_time"], data["room"], data["subject"], data["topic"], data["files"])
         return query, params
 
     def _build_insert_attendee_info_table_query(self, data: dict) -> tuple[str, tuple]:

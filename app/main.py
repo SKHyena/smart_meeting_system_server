@@ -14,7 +14,6 @@ from .provider.database_manager import DatabaseManager
 from .provider.object_storage_handler import ObjectStorageHandler
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
-from .model.reservation import Reservation
 
 
 app = FastAPI()
@@ -64,15 +63,8 @@ async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
     files: List[UploadFile] = File(...),
-):
-    meeting_info: dict[str, Any] = json.loads(reserve_data)
-    db_manager.insert_meeting_table(meeting_info)
-
-    attendees: List[dict[str, Any]] = json.loads(attendees_data)
-
-    for attendee in attendees:    
-        attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['start_time']}"
-        db_manager.insert_attendee_info_table(attendee)
+):    
+    files_info = []
 
     for file in files:                
         try:
@@ -81,12 +73,23 @@ async def reserve(
                 Key=file.filename,
                 Body=file.file,
             )
+            files_info.append({"file": file.filename})
         except NoCredentialsError:
             raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
         except PartialCredentialsError:
             raise HTTPException(status_code=401, detail="Incomplete Naver Cloud credentials")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+        
+    meeting_info: dict[str, Any] = json.loads(reserve_data)
+    meeting_info["files"] = json.dumps(files_info)
+    db_manager.insert_meeting_table(meeting_info)
+
+    attendees: List[dict[str, Any]] = json.loads(attendees_data)
+
+    for attendee in attendees:    
+        attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['start_time']}"
+        db_manager.insert_attendee_info_table(attendee)
 
 
 @app.get("/meeting_detail")
