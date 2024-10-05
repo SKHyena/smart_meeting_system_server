@@ -68,8 +68,8 @@ async def reserve(
         file_path = save_dir / file.filename
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-
-        os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
+            
+            os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
 
 
 @app.get("/meeting_detail")
