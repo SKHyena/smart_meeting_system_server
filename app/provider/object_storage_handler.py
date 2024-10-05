@@ -41,12 +41,12 @@ def create_standardized_query_parameters(request_parameters):
 
 
 class ObjectStorageHandler:
-    def __init__(self):
+    def __init__(self, access_key: str, secret_key: str):
         self.region = 'kr-standard'
         self.endpoint = 'https://kr.object.ncloudstorage.com'
         self.host = 'kr.object.ncloudstorage.com'
-        self.access_key = 'ACCESS_KEY_ID'
-        self.secret_key = 'SECRET_KEY'
+        self.access_key = access_key
+        self.secret_key = secret_key
 
         self.payload_hash = 'UNSIGNED-PAYLOAD'
         self.hashing_algorithm = 'AWS4-HMAC-SHA256'

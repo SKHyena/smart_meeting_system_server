@@ -7,6 +7,7 @@ from typing import List, Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File
 
 from .provider.database_manager import DatabaseManager
+from .provider.object_storage_handler import ObjectStorageHandler
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
 from .model.reservation import Reservation
@@ -26,6 +27,11 @@ db_manager = DatabaseManager(
 # db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
+
+os_handler = ObjectStorageHandler(
+    access_key=os.environ["OBJECT_STORAGE_ACCESS_KEY"],
+    secret_key=os.environ["OBJECT_STORAGE_SECRET_KEY"],
+)
 
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
