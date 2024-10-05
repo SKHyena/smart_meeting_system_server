@@ -26,15 +26,11 @@ db_manager = DatabaseManager(
     host=os.environ["DB_HOST"],
     database_name=os.environ["DB_NAME"],
 )
-# db_manager.drop_meeting_table()
-# db_manager.drop_attendee_table()
+db_manager.drop_meeting_table()
+db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
 
-os_handler = ObjectStorageHandler(
-    access_key=os.environ["OBJECT_STORAGE_ACCESS_KEY"],
-    secret_key=os.environ["OBJECT_STORAGE_SECRET_KEY"],
-)
 s3_client = boto3.client(
     's3',
     aws_access_key_id=os.environ["OBJECT_STORAGE_ACCESS_KEY"],
@@ -42,7 +38,6 @@ s3_client = boto3.client(
     region_name='kr-standard',
     endpoint_url='https://kr.object.ncloudstorage.com'
 )
-
 
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
