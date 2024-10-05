@@ -11,7 +11,6 @@ from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File, HTTPException
 
 from .provider.database_manager import DatabaseManager
-from .provider.object_storage_handler import ObjectStorageHandler
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
 
@@ -32,7 +31,7 @@ db_manager.create_meeting_table()
 db_manager.create_attendee_table()
 
 s3_client = boto3.client(
-    's3',
+    "s3",
     aws_access_key_id=os.environ["OBJECT_STORAGE_ACCESS_KEY"],
     aws_secret_access_key=os.environ["OBJECT_STORAGE_SECRET_KEY"],
     region_name='kr-standard',
@@ -96,27 +95,6 @@ async def get_meeting_detail():
 
     return {"meeting": meeting, "attendees": list(attendees)}
 
-@app.get("/db_test")
-async def get_db():
-    return db_manager.select_all_attendee_table()
-
-@app.post("/file_upload")
-async def reserve(    
-    files: List[UploadFile] = File(...),
-):    
-    for file in files:                
-        try:
-            s3_client.put_object(
-                Bucket="ggd-bucket01",
-                Key=file.filename,
-                Body=file.file  # 업로드 파일 내용
-            )
-        except NoCredentialsError:
-            raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
-        except PartialCredentialsError:
-            raise HTTPException(status_code=401, detail="Incomplete Naver Cloud credentials")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
