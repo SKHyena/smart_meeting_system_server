@@ -1,4 +1,5 @@
-import time
+from datetime import datetime, timezone, timedelta
+
 
 class TimeUtil:
     def __init__(self) -> None:
@@ -10,4 +11,6 @@ class TimeUtil:
         digit_diff = 10 - num_digit
         
         timestamp = int((10 ** digit_diff) * timestamp)
-        return time.strftime("%y-%m-%d %H:%M:%S", time.localtime(timestamp))
+        tz = timezone(+timedelta(hours=9))
+            
+        return datetime.fromtimestamp(timestamp, tz).strftime("%y-%m-%d %H:%M:%S")
