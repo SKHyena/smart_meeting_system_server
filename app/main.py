@@ -2,8 +2,10 @@ import json
 import os
 import logging
 import io
+import urllib
 from typing import List, Any
 from pathlib import Path
+import urllib.parse
 
 
 import boto3
@@ -101,12 +103,12 @@ async def get_meeting_detail():
 @app.post("/download_file")
 async def download_file(file_info: FileInfo):    
     try:                
-        logger.info(f"file name : {file_info.file_name}")
+        logger.info(f"file name : {file_info.file_name}")        
         s3_object = s3_client.get_object(Bucket="ggd-bucket01", Key=file_info.file_name)
         return StreamingResponse(
             io.BytesIO(s3_object['Body'].read()), 
             media_type="application/octet-stream", 
-            headers={"Content-Disposition": f"attachment; filename*=utf-8'{file_info.file_name}'"},
+            headers={"Content-Disposition": f"attachment; filename*=utf-8'{urllib.parse.quote(file_info.file_name)}'"},
         )
     except NoCredentialsError:
         raise HTTPException(status_code=401, detail="AWS Credentials not available")
