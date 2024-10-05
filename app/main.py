@@ -127,7 +127,7 @@ async def download_file(file_info: FileInfo):
 async def attend(attendance: Attendance):
     attendance_info: dict[str, Any] = attendance.model_dump()
     attendance_info["attendance_status"] = True
-    attendance_info["initial_attendance_time"] = TimeUtil.convert_unixtime_to_timestamp(time.time())
+    attendance_info["initial_attendance_time"] = TimeUtil.convert_unixtime_to_timestamp(int(time.time()))
 
     db_manager.update_attendee_attendance_info_table(attendance_info)    
 
