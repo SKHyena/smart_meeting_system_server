@@ -3,6 +3,7 @@ import os
 import logging
 import io
 import urllib
+import time
 from typing import List, Any
 from pathlib import Path
 import urllib.parse
@@ -17,6 +18,8 @@ from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
 from .model.file_info import FileInfo
+from .model.attendee import Attendance
+from .util.time_util import TimeUtil
 
 
 app = FastAPI()
@@ -118,6 +121,15 @@ async def download_file(file_info: FileInfo):
         raise HTTPException(status_code=404, detail="File not found in S3 bucket")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File download failed: {str(e)}")
+    
+
+@app.post("/attend")
+async def attend(attendance: Attendance):
+    attendance_info: dict[str, Any] = attendance.model_dump()
+    attendance_info["attendance_status"] = True
+    attendance_info["initial_attendance_time"] = TimeUtil.convert_unixtime_to_timestamp(time.time())
+
+    db_manager.update_attendee_attendance_info_table(attendance_info)    
 
 
 @app.websocket("/ws/{client_id}")
