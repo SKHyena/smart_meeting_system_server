@@ -38,7 +38,7 @@ os_handler = ObjectStorageHandler(
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
 
-save_dir = Path("./uploaded_files/")
+save_dir = Path("/uploaded_files")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 
