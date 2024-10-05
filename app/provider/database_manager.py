@@ -47,7 +47,7 @@ class DatabaseManager:
             id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             meeting_name TEXT,
             name TEXT,
-            group TEXT,
+            organization TEXT,
             position TEXT,
             email_address TEXT,
             role TEXT,
@@ -68,10 +68,10 @@ class DatabaseManager:
 
     def _build_insert_attendee_info_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO attendee (meeting_name, name, group, position, email_address, role, email_delivery_status)
+            INSERT INTO attendee (meeting_name, name, organization, position, email_address, role, email_delivery_status)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        params = (data["meeting_name"], data["name"], data["group"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
+        params = (data["meeting_name"], data["name"], data["organization"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
         return query, params
     
     def _build_update_attendee_attendance_info_table_query(self, data: dict) -> tuple[str, tuple]:
