@@ -97,9 +97,11 @@ async def reserve(
 ):    
     for file in files:                
         file_path = save_dir / file.filename
+        logger.info(f"file path : {str(file_path)}")
 
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
+        content = await file.read()
+        with open(str(file_path), "wb") as f:
+            f.write(content)
 
         # with file_path.open("wb") as buffer:
         #     shutil.copyfileobj(file.file, buffer)
