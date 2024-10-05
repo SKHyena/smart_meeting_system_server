@@ -38,7 +38,7 @@ os_handler = ObjectStorageHandler(
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
 
-save_dir = Path("/root/smart_meeting_system_server/tmp")
+save_dir = Path("./uploaded_files/")
 save_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -69,6 +69,7 @@ async def reserve(
 
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        time.sleep(1)
 
         os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
 
