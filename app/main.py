@@ -71,6 +71,13 @@ async def get_meeting_detail():
 
     return {"meeting": meeting, "attendees": attendees}
 
+@app.get("/db_test")
+async def get_db():
+    return db_manager.select_all_attendee_table()
+
+@app.get("/storage_test")
+async def get_db():
+    return os_handler.list_objects("ggd-bucket01")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
