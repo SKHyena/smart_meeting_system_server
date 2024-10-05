@@ -1,14 +1,15 @@
-import shutil
 import json
 import os
 import logging
-import time
+import io
 from typing import List, Any
 from pathlib import Path
+
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse
 
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
@@ -94,6 +95,25 @@ async def get_meeting_detail():
     attendees: tuple[dict] = db_manager.select_all_attendee_table()
 
     return {"meeting": meeting, "attendees": list(attendees)}
+
+
+@app.get("download_file/{object_name}")
+async def download_file(object_name: str):
+    try:
+        s3_object = s3_client.get_object(Bucket="ggd-bucket01", Key=object_name)
+        return StreamingResponse(
+            io.BytesIO(s3_object['Body'].read()), 
+            media_type="application/octet-stream", 
+            headers={"Content-Disposition": f"attachment; filename={object_name}"},
+        )
+    except NoCredentialsError:
+        raise HTTPException(status_code=401, detail="AWS Credentials not available")
+    except PartialCredentialsError:
+        raise HTTPException(status_code=401, detail="Incomplete AWS credentials")
+    except s3_client.exceptions.NoSuchKey:
+        raise HTTPException(status_code=404, detail="File not found in S3 bucket")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File download failed: {str(e)}")
 
 
 @app.websocket("/ws/{client_id}")
