@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class Attendee(BaseModel):    
     name: str
-    group: str
+    organization: str
     position: str
     email_address: str
     role: str

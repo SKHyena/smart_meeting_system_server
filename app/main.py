@@ -55,7 +55,7 @@ async def reserve(
     attendees: List[dict[str, Any]] = json.loads(attendees_data)
 
     for attendee in attendees:    
-        attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['time']}"
+        attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['start_time']}"
         db_manager.insert_attendee_info_table(attendee)
 
     for file in files:        
