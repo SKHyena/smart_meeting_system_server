@@ -113,7 +113,7 @@ class ObjectStorageHandler:
     def put_object(self, bucket_name, object_name, source_file_path, request_parameters=None):
         http_method = 'PUT'
 
-        with open(source_file_path) as f:
+        with open(source_file_path, "rb") as f:
             time = datetime.datetime.utcnow()
             time_stamp = time.strftime(self.time_format)
 
