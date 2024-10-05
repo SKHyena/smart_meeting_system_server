@@ -6,7 +6,9 @@ import time
 from typing import List, Any
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File
+import boto3
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File, HTTPException
 
 from .provider.database_manager import DatabaseManager
 from .provider.object_storage_handler import ObjectStorageHandler
@@ -34,6 +36,14 @@ os_handler = ObjectStorageHandler(
     access_key=os.environ["OBJECT_STORAGE_ACCESS_KEY"],
     secret_key=os.environ["OBJECT_STORAGE_SECRET_KEY"],
 )
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.environ["OBJECT_STORAGE_ACCESS_KEY"],
+    aws_secret_access_key=os.environ["OBJECT_STORAGE_SECRET_KEY"],
+    region_name='kr-standard',
+    endpoint_url='https://kr.object.ncloudstorage.com'
+)
+
 
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
@@ -96,17 +106,18 @@ async def reserve(
     files: List[UploadFile] = File(...),
 ):    
     for file in files:                
-        file_path = save_dir / file.filename
-        logger.info(f"file path : {str(file_path)}")
-
-        content = await file.read()
-        with open(str(file_path), "wb") as f:
-            f.write(content)
-
-        # with file_path.open("wb") as buffer:
-        #     shutil.copyfileobj(file.file, buffer)
-
-        os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
+        try:
+            s3_client.put_object(
+                Bucket="ggd-bucket01",
+                Key=file.name,
+                Body=file.file  # 업로드 파일 내용
+            )
+        except NoCredentialsError:
+            raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
+        except PartialCredentialsError:
+            raise HTTPException(status_code=401, detail="Incomplete Naver Cloud credentials")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
