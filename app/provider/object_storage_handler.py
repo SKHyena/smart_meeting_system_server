@@ -110,25 +110,23 @@ class ObjectStorageHandler:
 
         headers['authorization'] = self._create_authorization_header(headers, signature_key, string_to_sign, credential_scope)
 
-    def put_object(self, bucket_name, object_name, source_file_path, request_parameters=None):
-        http_method = 'PUT'
+    def put_object(self, bucket_name, object_name, source_file: bytes, request_parameters=None):
+        http_method = 'PUT'        
+        time = datetime.datetime.utcnow()
+        time_stamp = time.strftime(self.time_format)
 
-        with open(source_file_path) as f:
-            time = datetime.datetime.utcnow()
-            time_stamp = time.strftime(self.time_format)
+        headers = {'x-amz-date': time_stamp,
+                    'x-amz-content-sha256': self.payload_hash,
+                    'host': self.host}
 
-            headers = {'x-amz-date': time_stamp,
-                       'x-amz-content-sha256': self.payload_hash,
-                       'host': self.host}
+        request_path = '/%s/%s' % (bucket_name, object_name)
 
-            request_path = '/%s/%s' % (bucket_name, object_name)
+        self._sign(http_method, request_path, headers, time, request_parameters)
 
-            self._sign(http_method, request_path, headers, time, request_parameters)
+        request_url = self.endpoint + request_path
+        r = requests.put(request_url, headers=headers, params=request_parameters, data=source_file)
 
-            request_url = self.endpoint + request_path
-            r = requests.put(request_url, headers=headers, params=request_parameters, data=f.read())
-
-            print('Response code: %d' % r.status_code)
+        print('Response code: %d' % r.status_code)
 
     def get_object(self, bucket_name, object_name, target_file_path, request_parameters=None):
         http_method = 'GET'
