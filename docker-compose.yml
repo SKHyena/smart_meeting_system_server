@@ -8,3 +8,4 @@ services:
       - 8080:8080
     volumes:
       - ./app:/code/app
+      - /uploaded_files:/uploaded_files
