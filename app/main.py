@@ -67,8 +67,8 @@ async def reserve(
     for file in files:                
         file_path = save_dir / file.filename
 
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)        
+        with file_path.open("wb") as buffer:
+            await shutil.copyfileobj(file.file, buffer)
 
         os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
 
@@ -89,6 +89,18 @@ async def get_db():
 @app.get("/storage_test")
 async def get_db():
     return os_handler.list_objects("ggd-bucket01")
+
+@app.post("/file_upload")
+async def reserve(    
+    files: List[UploadFile] = File(...),
+):    
+    for file in files:                
+        file_path = save_dir / file.filename
+
+        with file_path.open("wb") as buffer:
+            await shutil.copyfileobj(file.file, buffer)
+
+        os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
