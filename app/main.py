@@ -26,8 +26,8 @@ db_manager = DatabaseManager(
     host=os.environ["DB_HOST"],
     database_name=os.environ["DB_NAME"],
 )
-db_manager.drop_meeting_table()
-db_manager.drop_attendee_table()
+# db_manager.drop_meeting_table()
+# db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
 
@@ -97,7 +97,7 @@ async def get_meeting_detail():
     return {"meeting": meeting, "attendees": list(attendees)}
 
 
-@app.get("download_file/{object_name}")
+@app.get("/download_file/{object_name}")
 async def download_file(object_name: str):
     try:
         s3_object = s3_client.get_object(Bucket="ggd-bucket01", Key=object_name)
