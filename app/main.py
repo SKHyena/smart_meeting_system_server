@@ -66,8 +66,9 @@ async def reserve(
 
     for file in files:                
         file_path = save_dir / file.filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)        
 
         os_handler.put_object("ggd-bucket01", file.filename, str(file_path))
 
