@@ -84,6 +84,7 @@ async def reserve(
         
     meeting_info: dict[str, Any] = json.loads(reserve_data)
     meeting_info["files"] = json.dumps(files_info, ensure_ascii=False)
+    meeting_info["pt_contents"] = "Presentation contents should be updated"
     db_manager.insert_meeting_table(meeting_info)
 
     attendees: List[dict[str, Any]] = json.loads(attendees_data)
