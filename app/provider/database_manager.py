@@ -100,6 +100,16 @@ class DatabaseManager:
         """
         params = (data["name"], data["email_address"])
         return query, params
+    
+    def _build_delete_all_meeting_table_query(self) -> str:
+        return """
+            DELETE FROM meeting
+        """
+    
+    def _build_delete_all_attendee_table_query(self) -> str:
+        return """
+            DELETE FROM attendee
+        """
         
     def _build_drop_meeting_table_query(self) -> str:
         return "DROP TABLE IF EXISTS meeting"
@@ -174,3 +184,11 @@ class DatabaseManager:
     def delete_attendee_table_with_id(self, data: dict) -> None:
         query, params = self._build_delete_attendee_table_query(data)
         self._execute_commit_query(query, params)
+
+    def delete_all_meeting_table(self) -> None:
+        query = self._build_delete_all_meeting_table_query()
+        self._execute_commit_query(query, ())
+
+    def delete_all_attendee_table(self) -> None:
+        query = self._build_delete_all_attendee_table_query()
+        self._execute_commit_query(query, ())

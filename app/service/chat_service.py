@@ -4,7 +4,6 @@ from fastapi import WebSocket
 class ChatServiceManager:
     def __init__(self):
         self.active_connections: dict[int, WebSocket] = {}
-        self.client_locale: dict[int, str] = {}
 
     async def connect(self, websocket: WebSocket, client_id: int):
         await websocket.accept()
@@ -12,10 +11,7 @@ class ChatServiceManager:
 
     def disconnect(self, websocket: WebSocket, client_id: int):
         if client_id in self.active_connections:
-            self.active_connections.pop(client_id)
-        
-        if client_id in self.client_locale:
-            self.client_locale.pop(client_id)
+            self.active_connections.pop(client_id)                
 
     async def send_personal_message(self, message: str, client_id: int):
         await self.active_connections[client_id].send_text(message)

@@ -6,8 +6,6 @@ import urllib
 import time
 from typing import List, Any
 from pathlib import Path
-import urllib.parse
-
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
@@ -48,9 +46,6 @@ s3_client = boto3.client(
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
 
-save_dir = Path("/uploaded_files")
-save_dir.mkdir(parents=True, exist_ok=True)
-
 
 def is_blank_or_none(value: str):
     if value is None or value == "'":
@@ -64,9 +59,11 @@ async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
     files: List[UploadFile] = File(...),
-):    
+):
+    db_manager.delete_all_meeting_table()
+    db_manager.delete_all_attendee_table()
+    
     files_info = []
-
     for file in files:                
         try:
             s3_client.put_object(
@@ -75,6 +72,7 @@ async def reserve(
                 Body=file.file,
             )
             files_info.append({"file": file.filename})
+
         except NoCredentialsError:
             raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
         except PartialCredentialsError:
@@ -88,7 +86,6 @@ async def reserve(
     db_manager.insert_meeting_table(meeting_info)
 
     attendees: List[dict[str, Any]] = json.loads(attendees_data)
-
     for attendee in attendees:    
         attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['start_time']}"
         db_manager.insert_attendee_info_table(attendee)
@@ -105,10 +102,11 @@ async def get_meeting_detail():
 
 
 @app.post("/download_file")
-async def download_file(file_info: FileInfo):    
+async def download_file(file_info: FileInfo):
     try:                
-        logger.info(f"file name : {file_info.file_name}")        
+        logger.info(f"file name : {file_info.file_name}")
         s3_object = s3_client.get_object(Bucket="ggd-bucket01", Key=file_info.file_name)
+
         return StreamingResponse(
             io.BytesIO(s3_object['Body'].read()), 
             media_type="application/octet-stream", 
@@ -135,15 +133,16 @@ async def attend(attendance: Attendance):
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-
     await chat_manager.connect(websocket, client_id)
     logger.info(f"{chat_manager.active_connections}")
 
     try:
-        while True:            
-            data = await websocket.receive_text()
-                        
-            await chat_manager.broadcast(data)
+        while True:
+            data: str = await websocket.receive_text()
+            json_data: dict = json.loads(data)
+
+            if json_data["is_done"]:
+                await chat_manager.broadcast(data)
 
     except WebSocketDisconnect:
         chat_manager.disconnect(websocket, client_id)
