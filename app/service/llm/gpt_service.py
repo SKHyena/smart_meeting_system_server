@@ -36,15 +36,3 @@ class GptServiceManager:
     def summarize(self, dialogue: List[dict]) -> str:
         summarize_prompt = PromptGenerator.get_summarize_prompt(json.dumps(dialogue))
         return self._complete(summarize_prompt)
-
-    def categorize(self, dialogue: List[dict]) -> str:
-        categorize_prompt = PromptGenerator.get_categorize_prompt(json.dumps(dialogue))
-        categorize_completion = self._complete(categorize_prompt)
-        return self._post_process_with_categorize(categorize_completion)
-    
-    def _post_process_with_categorize(self, completion: str) -> str:
-        for category in self._categories:
-            if category in completion:
-                return category
-        
-        return "기타"

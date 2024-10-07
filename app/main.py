@@ -17,6 +17,7 @@ from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
 from .model.file_info import FileInfo
 from .model.attendee import Attendance
+from .model.utterance import Utterance
 from .util.time_util import TimeUtil
 
 
@@ -62,7 +63,7 @@ async def reserve(
 ):
     db_manager.delete_all_meeting_table()
     db_manager.delete_all_attendee_table()
-    
+
     files_info = []
     for file in files:                
         try:
@@ -128,7 +129,14 @@ async def attend(attendance: Attendance):
     attendance_info["attendance_status"] = True
     attendance_info["initial_attendance_time"] = TimeUtil.convert_unixtime_to_timestamp(int(time.time()))
 
-    db_manager.update_attendee_attendance_info_table(attendance_info)    
+    db_manager.update_attendee_attendance_info_table(attendance_info)
+
+
+@app.post("/summarize")    
+async def summarize(utterances: List[Utterance]):
+    dialogue: List[dict] = list(map(lambda x: x.model_dump(), utterances))    
+    summary = gpt_service.summarize(dialogue)
+    return {"summary": summary}
 
 
 @app.websocket("/ws/{client_id}")
