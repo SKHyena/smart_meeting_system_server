@@ -31,8 +31,8 @@ db_manager = DatabaseManager(
     host=os.environ["DB_HOST"],
     database_name=os.environ["DB_NAME"],
 )
-# db_manager.drop_meeting_table()
-# db_manager.drop_attendee_table()
+db_manager.drop_meeting_table()
+db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
 
