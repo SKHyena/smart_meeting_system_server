@@ -84,12 +84,19 @@ async def reserve(
     meeting_info: dict[str, Any] = json.loads(reserve_data)
     meeting_info["files"] = json.dumps(files_info, ensure_ascii=False)
     meeting_info["pt_contents"] = "Presentation contents should be updated"
+    meeting_info["status"] = "회의 시작 전"
     db_manager.insert_meeting_table(meeting_info)
 
     attendees: List[dict[str, Any]] = json.loads(attendees_data)
     for attendee in attendees:    
         attendee["meeting_name"] = f"{meeting_info['name']}_{meeting_info['start_time']}"
         db_manager.insert_attendee_info_table(attendee)
+
+
+@app.get("/update_meeting/{status}")
+async def update_meeting(status: str):
+    logger.info(f"Update meeting status : {status}")
+    db_manager.update_meeting_status_table(status)
 
 
 @app.get("/meeting_detail")

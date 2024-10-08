@@ -11,7 +11,5 @@ class Attendee(BaseModel):
 
 
 class Attendance(BaseModel):
-    organization: str
-    name: str
-    email_address: str
+    id: int
     connected_device: str

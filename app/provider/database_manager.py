@@ -39,7 +39,8 @@ class DatabaseManager:
             subject TEXT,
             topic TEXT,
             files TEXT,
-            pt_contents TEXT
+            pt_contents TEXT,
+            status TEXT
         )
         """
     
@@ -62,10 +63,10 @@ class DatabaseManager:
     
     def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO meeting (name, start_time, end_time, room, subject, topic, files, pt_contents)
+            INSERT INTO meeting (name, start_time, end_time, room, subject, topic, files, pt_contents, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        params = (data["name"], data["start_time"], data["end_time"], data["room"], data["subject"], data["topic"], data["files"], data["pt_contents"])
+        params = (data["name"], data["start_time"], data["end_time"], data["room"], data["subject"], data["topic"], data["files"], data["pt_contents"], data["status"])
         return query, params
 
     def _build_insert_attendee_info_table_query(self, data: dict) -> tuple[str, tuple]:
@@ -79,9 +80,16 @@ class DatabaseManager:
     def _build_update_attendee_attendance_info_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
             UPDATE attendee SET attendance_status = %s, initial_attendance_time = %s, connected_device = %s
-            WHERE name = %s AND email_address = %s
+            WHERE id = %s
         """
-        params = (data["attendance_status"], data["initial_attendance_time"], data["connected_device"], data["name"], data["email_address"])
+        params = (data["attendance_status"], data["initial_attendance_time"], data["connected_device"], data["id"])
+        return query, params
+    
+    def _build_update_meeting_status_table_query(self, status: str) -> tuple[str, tuple]:
+        query = """
+            UPDATE meeting SET status = %s            
+        """
+        params = (status)
         return query, params
     
     def _build_select_all_meeting_table_query(self) -> str:
@@ -169,6 +177,10 @@ class DatabaseManager:
 
     def update_attendee_attendance_info_table(self, data: dict) -> None:
         query, params = self._build_update_attendee_attendance_info_table_query(data)        
+        self._execute_commit_query(query, params)
+
+    def update_meeting_status_table(self, status: str) -> None:
+        query, params = self._build_update_meeting_status_table_query(status)
         self._execute_commit_query(query, params)
     
     def select_all_meeting_table(self) -> List[Any]:
