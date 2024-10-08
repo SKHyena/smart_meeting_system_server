@@ -64,7 +64,7 @@ class DatabaseManager:
     def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
             INSERT INTO meeting (name, start_time, end_time, room, subject, topic, files, pt_contents, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         params = (data["name"], data["start_time"], data["end_time"], data["room"], data["subject"], data["topic"], data["files"], data["pt_contents"], data["status"])
         return query, params
