@@ -114,8 +114,6 @@ async def update_meeting(status: str):
         {"type": "meeting_status", "status": meeting_status[status]}
     ))
 
-    # return Http
-
 
 @app.get("/meeting_detail", status_code=200)
 async def get_meeting_detail():
