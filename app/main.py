@@ -55,7 +55,7 @@ def is_blank_or_none(value: str):
     return False
 
 
-@app.post("/reserve")
+@app.post("/reserve", status_code=201)
 async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
@@ -93,13 +93,31 @@ async def reserve(
         db_manager.insert_attendee_info_table(attendee)
 
 
-@app.get("/update_meeting/{status}")
+@app.get("/update_meeting/{status}", status_code=200)
 async def update_meeting(status: str):
+    meeting_status: dict[str, int] = {
+        "회의 시작 전": 1,
+        "회의 발표 중": 2,
+        "발표 종료상태": 3,
+        "Q&A 중": 4,
+        "회의 종료상태": 5,
+        "정회 중": 6,
+    }
+
+    if status not in meeting_status:
+        return HTTPException(500, "meeting status is not correct.")
+
     logger.info(f"Update meeting status : {status}")
     db_manager.update_meeting_status_table(status)
 
+    chat_manager.broadcast(json.dumps(
+        {"type": "meeting_status", "status": meeting_status[status]}
+    ))
 
-@app.get("/meeting_detail")
+    # return Http
+
+
+@app.get("/meeting_detail", status_code=200)
 async def get_meeting_detail():
     meetings: tuple[dict] = db_manager.select_all_meeting_table()
     meeting: dict = meetings[-1] if len(meetings) >= 1 else {}
@@ -109,7 +127,7 @@ async def get_meeting_detail():
     return {"meeting": meeting, "attendees": list(attendees)}
 
 
-@app.post("/download_file")
+@app.post("/download_file", status_code=201)
 async def download_file(file_info: FileInfo):
     try:                
         logger.info(f"file name : {file_info.file_name}")
@@ -130,7 +148,7 @@ async def download_file(file_info: FileInfo):
         raise HTTPException(status_code=500, detail=f"File download failed: {str(e)}")
     
 
-@app.post("/attend")
+@app.post("/attend", status_code=201)
 async def attend(attendance: Attendance):
     attendance_info: dict[str, Any] = attendance.model_dump()
     attendance_info["attendance_status"] = True
@@ -139,7 +157,7 @@ async def attend(attendance: Attendance):
     db_manager.update_attendee_attendance_info_table(attendance_info)
 
 
-@app.post("/summarize")    
+@app.post("/summarize", status_code=200)
 async def summarize(utterances: List[Utterance]):
     dialogue: List[dict] = list(map(lambda x: x.model_dump(), utterances))    
     summary = gpt_service.summarize(dialogue)
@@ -149,6 +167,7 @@ async def summarize(utterances: List[Utterance]):
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await chat_manager.connect(websocket, client_id)
+    chat_manager.send_personal_message()
     logger.info(f"{chat_manager.active_connections}")
 
     try:
@@ -156,8 +175,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             data: str = await websocket.receive_text()
             json_data: dict = json.loads(data)
 
-            if json_data["is_done"]:
-                await chat_manager.broadcast(data)
+            if json_data["type"] == "mic":
+                logger.info(f"{client_id} client has changed mic status : {json_data['status']}")
+
+            if json_data["type"] == "q&a" and json_data["id_done"]:                
+                logger.info(f"Q&A message: {json_data['message']}")
+                chat_manager.qa_list.append((json_data["id"], json_data["message"]))                
+
+            chat_manager.broadcast(data)
 
     except WebSocketDisconnect:
         chat_manager.disconnect(websocket, client_id)
