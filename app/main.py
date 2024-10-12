@@ -69,7 +69,7 @@ async def reserve(
     db_manager.delete_all_attendee_table()
 
     files_info = []
-    if file is not None:        
+    if files is not None:        
         for file in files:                
             try:
                 s3_client.put_object(
