@@ -63,7 +63,7 @@ def is_blank_or_none(value: str):
 async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
-    files: Optional[List[UploadFile]] = File(...),
+    files: Optional[List[UploadFile]] = File(None),
 ):
     db_manager.delete_all_meeting_table()
     db_manager.delete_all_attendee_table()
