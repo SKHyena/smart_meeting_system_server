@@ -63,7 +63,7 @@ def is_blank_or_none(value: str):
 async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
-    files: Optional[List[UploadFile]] = None,
+    files: Optional[List[UploadFile]] = File(...),
 ):
     db_manager.delete_all_meeting_table()
     db_manager.delete_all_attendee_table()
@@ -156,6 +156,7 @@ async def attend(attendance: Attendance):
     attendance_info["initial_attendance_time"] = TimeUtil.convert_unixtime_to_timestamp(int(time.time()))
 
     db_manager.update_attendee_attendance_info_table(attendance_info)
+
 
 @app.get("/mail_send/{client_id}", status_code=200)
 async def send_mail(client_id: int):
