@@ -3,12 +3,14 @@ from typing import List
 
 from fastapi import WebSocket
 
+from ..model.utterance import Utterance
+
 
 class ChatServiceManager:
     def __init__(self):
         self.active_connections: dict[int, WebSocket] = {}
         self.mic_status: dict[int, bool] = {}
-        self.qa_list: List[tuple[int, str]] = []
+        self.qa_list: List[Utterance] = []
 
     async def connect(self, websocket: WebSocket, client_id: int):
         await websocket.accept()

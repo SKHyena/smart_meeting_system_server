@@ -40,7 +40,8 @@ class DatabaseManager:
             topic TEXT,
             files TEXT,
             pt_contents TEXT,
-            status TEXT
+            status TEXT,
+            summary TEXT            
         )
         """
     
@@ -92,6 +93,13 @@ class DatabaseManager:
         params = (status)
         return query, params
     
+    def _build_update_meeting_summary_table_query(self, summary: str) -> tuple[str, tuple]:
+        query = """
+            UPDATE meeting SET summary = %s            
+        """
+        params = (summary)
+        return query, params
+    
     def _build_select_all_meeting_table_query(self) -> str:
         return f"""
             SELECT * FROM meeting ORDER BY id desc
@@ -100,6 +108,11 @@ class DatabaseManager:
     def _build_select_all_attendee_table_query(self) -> str:
         return f"""
             SELECT * FROM attendee ORDER BY id desc
+        """
+    
+    def _build_select_attendee_table_query(self, id: int) -> str:
+        return f"""
+            SELECT * FROM attendee ORDER BY id desc WHERE id = {id}
         """
     
     def _build_delete_attendee_table_query(self, data: dict) -> tuple[str, tuple]:
@@ -182,6 +195,10 @@ class DatabaseManager:
     def update_meeting_status_table(self, status: str) -> None:
         query, params = self._build_update_meeting_status_table_query(status)
         self._execute_commit_query(query, params)
+
+    def update_meeting_summary_table(self, summary: str) -> None:
+        query, params = self._build_update_meeting_summary_table_query(summary)
+        self._execute_commit_query(query, params)
     
     def select_all_meeting_table(self) -> List[Any]:
         select_table_query = self._build_select_all_meeting_table_query()
@@ -190,6 +207,11 @@ class DatabaseManager:
     
     def select_all_attendee_table(self) -> List[Any]:
         select_table_query = self._build_select_all_attendee_table_query()
+
+        return self._execute_select_query(select_table_query)
+    
+    def select_attendee_table_with_id(self, id: int) -> List[Any]:
+        select_table_query = self._build_select_attendee_table_query(id)
 
         return self._execute_select_query(select_table_query)
 

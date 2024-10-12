@@ -5,7 +5,6 @@ import io
 import urllib
 import time
 from typing import List, Any
-from pathlib import Path
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
@@ -15,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
+from .service.mail_service import MailServiceManager
 from .model.file_info import FileInfo
 from .model.attendee import Attendance
 from .model.utterance import Utterance
@@ -31,8 +31,8 @@ db_manager = DatabaseManager(
     host=os.environ["DB_HOST"],
     database_name=os.environ["DB_NAME"],
 )
-db_manager.drop_meeting_table()
-db_manager.drop_attendee_table()
+# db_manager.drop_meeting_table()
+# db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
 
@@ -46,6 +46,10 @@ s3_client = boto3.client(
 
 chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
+mail_service = MailServiceManager(
+    os.environ["MAIL_ACCOUNT"],
+    os.environ["MAIL_APP_NUMBER"]
+)
 
 
 def is_blank_or_none(value: str):
@@ -59,27 +63,28 @@ def is_blank_or_none(value: str):
 async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
-    files: List[UploadFile] = File(...),
+    files: List[UploadFile] = File(...) | None,
 ):
     db_manager.delete_all_meeting_table()
     db_manager.delete_all_attendee_table()
 
     files_info = []
-    for file in files:                
-        try:
-            s3_client.put_object(
-                Bucket="ggd-bucket01",
-                Key=file.filename,
-                Body=file.file,
-            )
-            files_info.append({"file": file.filename})
+    if file is not None:        
+        for file in files:                
+            try:
+                s3_client.put_object(
+                    Bucket="ggd-bucket01",
+                    Key=file.filename,
+                    Body=file.file,
+                )
+                files_info.append({"file": file.filename})
 
-        except NoCredentialsError:
-            raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
-        except PartialCredentialsError:
-            raise HTTPException(status_code=401, detail="Incomplete Naver Cloud credentials")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+            except NoCredentialsError:
+                raise HTTPException(status_code=401, detail="Naver Cloud credentials not available")
+            except PartialCredentialsError:
+                raise HTTPException(status_code=401, detail="Incomplete Naver Cloud credentials")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
         
     meeting_info: dict[str, Any] = json.loads(reserve_data)
     meeting_info["files"] = json.dumps(files_info, ensure_ascii=False)
@@ -97,11 +102,9 @@ async def reserve(
 async def update_meeting(status: str):
     meeting_status: dict[str, int] = {
         "회의 시작 전": 1,
-        "회의 발표 중": 2,
-        "발표 종료상태": 3,
-        "Q&A 중": 4,
-        "회의 종료상태": 5,
-        "정회 중": 6,
+        "PT발표": 2,
+        "Q&A": 3,
+        "회의 종료상태": 4,
     }
 
     if status not in meeting_status:
@@ -154,11 +157,48 @@ async def attend(attendance: Attendance):
 
     db_manager.update_attendee_attendance_info_table(attendance_info)
 
+@app.get("/mail_send/{client_id}", status_code=200)
+async def send_mail(client_id: int):
+    attendees = db_manager.select_attendee_table_with_id(client_id)
+    summary: str = db_manager.select_all_meeting_table()[0]["summary"]
 
-@app.post("/summarize", status_code=200)
-async def summarize(utterances: List[Utterance]):
-    dialogue: List[dict] = list(map(lambda x: x.model_dump(), utterances))    
-    summary = gpt_service.summarize(dialogue)
+    if summary is None or summary == "":
+        return HTTPException(500, "Summary has not been updated.")    
+
+    try:
+        for attendee in attendees:
+            address: str = attendee["email_address"]        
+            content = mail_service.build_email(address, summary)
+            mail_service.send_email(content)
+    except:
+        return HTTPException(500, "Sending e-mail failed")
+
+
+@app.get("/mail_send", status_code=201)
+async def send_mail():
+    attendees = db_manager.select_all_attendee_table()
+    summary: str = db_manager.select_all_meeting_table()[0]["summary"]
+
+    if summary is None or summary == "":
+        return HTTPException(500, "Summary has not been updated.")    
+    
+    try:
+        for attendee in attendees:
+            if attendee["email_delivery_status"] == 0:
+                continue
+
+            address: str = attendee["email_address"]        
+            content = mail_service.build_email(address, summary)
+            mail_service.send_email(content)
+    except:
+        return HTTPException(500, "Sending e-mail failed")
+
+
+@app.get("/summarize", status_code=201)
+async def summarize():    
+    summary: str = gpt_service.summarize(chat_manager.qa_list)
+    db_manager.update_meeting_summary_table(summary)
+
     return {"summary": summary}
 
 
@@ -178,7 +218,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
             if json_data["type"] == "q&a" and json_data["id_done"]:                
                 logger.info(f"Q&A message: {json_data['message']}")
-                chat_manager.qa_list.append((json_data["id"], json_data["message"]))                
+                chat_manager.qa_list.append(
+                    Utterance(
+                        timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestamp"]),
+                        speaker=json_data["id"],
+                        text=json_data["message"]
+                    )
+                )
 
             chat_manager.broadcast(data)
 
