@@ -195,8 +195,18 @@ async def send_mail():
 
 
 @app.get("/summarize", status_code=201)
-async def summarize():    
-    summary: str = gpt_service.summarize(chat_manager.qa_list)
+async def summarize():
+    attendees = db_manager.select_all_attendee_table()
+    attendee_id_name_map = {
+        attendee["id"]: attendee["name"] for attendee in attendees
+    }
+
+    utterances: List[Utterance] = chat_manager.qa_list.copy()
+    for utterance in utterances:
+        utterance.speaker = attendee_id_name_map[utterance.speaker]
+
+    summary: str = gpt_service.summarize(utterances)
+    logger.info(f"Summary : \n {summary}")
     db_manager.update_meeting_summary_table(summary)
 
     return {"summary": summary}
