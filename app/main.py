@@ -31,8 +31,8 @@ db_manager = DatabaseManager(
     host=os.environ["DB_HOST"],
     database_name=os.environ["DB_NAME"],
 )
-# db_manager.drop_meeting_table()
-# db_manager.drop_attendee_table()
+db_manager.drop_meeting_table()
+db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
 
@@ -48,7 +48,7 @@ chat_manager = ChatServiceManager()
 gpt_service = GptServiceManager(logger)
 mail_service = MailServiceManager(
     os.environ["MAIL_ACCOUNT"],
-    os.environ["MAIL_APP_NUMBER"]
+    os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
 
 
