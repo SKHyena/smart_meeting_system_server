@@ -4,7 +4,7 @@ import logging
 import io
 import urllib
 import time
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
@@ -63,7 +63,7 @@ def is_blank_or_none(value: str):
 async def reserve(
     reserve_data: str = Form(...),
     attendees_data: str = Form(...),
-    files: Optional[List[UploadFile]] = None,
+    files: List[Union[UploadFile, None]] = File(None)
 ):
     db_manager.delete_all_meeting_table()
     db_manager.delete_all_attendee_table()
