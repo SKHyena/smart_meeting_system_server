@@ -119,7 +119,7 @@ async def update_meeting(status: str):
     if status not in ["정회", "재개"]:
         db_manager.update_meeting_status_table(status)
 
-    chat_manager.broadcast(json.dumps(
+    await chat_manager.broadcast(json.dumps(
         {"type": "meeting_status", "status": meeting_status[status]}
     ))
 
