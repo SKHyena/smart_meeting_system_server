@@ -108,8 +108,8 @@ async def update_meeting(status: str):
         "PT발표": 2,
         "Q&A": 3,
         "회의 종료상태": 4,
-        "정회": -1, 
-        "재개": -1,
+        "정회": 98, 
+        "재개": 99,
     }
 
     if status not in meeting_status:
