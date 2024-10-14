@@ -236,7 +236,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await websocket.accept()
     try:
         while True:
-            bytes_arr = await websocket.receive_bytes()            
+            bytes_arr = await websocket.receive_bytes()
+
+            if len(bytes_arr) < 50000:
+                continue
+
             audio = AudioSegment.from_file(io.BytesIO(bytes_arr), format="webm")  # webm -> pcm 변환
             pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
             text = transcription_service.transcribe(pcm_audio.raw_data)

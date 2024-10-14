@@ -56,7 +56,7 @@ class TranscriptionService:
         response_list = list(responses)
         self.logger.info(f"transcription response length : {len(response_list)}")
 
-        for response in responses:
+        for response in response_list:
             each_result = response.results
             self.logger.info(f"each response result : {each_result}")
 
