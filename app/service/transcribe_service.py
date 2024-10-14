@@ -20,7 +20,8 @@ class TranscriptionService:
         self.logger = logger
     
     def transcribe(self, bytes_arr: bytes) -> str:        
-        self.logger.info(f"byte array : {bytes}")
+        self.logger.info(f"byte array : {bytes_arr}")
+        self.logger.info(f"length of bytes : {len(bytes_arr)}")
         contents = [bytes_arr]        
         requests = (
             speech.StreamingRecognizeRequest(audio_content=content) for content in contents
