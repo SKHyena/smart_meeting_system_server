@@ -12,6 +12,7 @@ from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from google.cloud import speech
+from pydub import AudioSegment
 
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
@@ -60,8 +61,8 @@ client = speech.SpeechClient()
 
 # Google Speech API의 인식 설정
 config = speech.RecognitionConfig(
-    encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,  # 오디오 인코딩 방식
-    sample_rate_hertz=48000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
+    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
+    sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
     language_code="ko-KR"  # 인식할 언어 코드
 )
 
@@ -262,7 +263,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             # 계속해서 데이터를 WebSocket으로부터 받음
             audio_chunk = yield
             if audio_chunk:
-                yield speech.StreamingRecognizeRequest(audio_content=audio_chunk)
+                audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
+                pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
+                yield speech.StreamingRecognizeRequest(audio_content=pcm_audio.raw_data)
 
     # 스트림 요청 생성기
     audio_requests = generate_audio_requests()
