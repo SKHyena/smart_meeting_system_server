@@ -105,14 +105,17 @@ async def update_meeting(status: str):
         "PT발표": 2,
         "Q&A": 3,
         "회의 종료상태": 4,
+        "정회": -1, 
+        "재개": -1,
     }
 
     if status not in meeting_status:
         return HTTPException(500, "meeting status is not correct.")
-
     logger.info(f"Update meeting status : {status}")
-    db_manager.update_meeting_status_table(status)
-
+    
+    if status not in ["정회", "재개"]:
+        db_manager.update_meeting_status_table(status)
+        
     chat_manager.broadcast(json.dumps(
         {"type": "meeting_status", "status": meeting_status[status]}
     ))
@@ -216,7 +219,11 @@ async def summarize():
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await chat_manager.connect(websocket, client_id)
-    chat_manager.send_personal_message()
+
+    mic_status: dict[int, str] = {}
+    for id in chat_manager.mic_status:
+        mic_status[id] = "on" if chat_manager.mic_status[id] else "off"
+    chat_manager.send_personal_message(json.dumps(mic_status), client_id)    
     logger.info(f"{chat_manager.active_connections}")
 
     try:
