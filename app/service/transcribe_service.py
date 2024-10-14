@@ -10,7 +10,7 @@ class TranscriptionService:
         self.client = speech.SpeechClient()
         self.config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
-            sample_rate_hertz=16000,
+            sample_rate_hertz=48000,
             language_code="ko-KR",
         )
         self.streaming_config = speech.StreamingRecognitionConfig(
@@ -19,9 +19,10 @@ class TranscriptionService:
 
         self.logger = logger
     
-    def transcribe(self, content: bytes) -> str:        
+    def transcribe(self, bytes_arr: bytes) -> str:        
+        contents = [bytes_arr]
         requests = (
-            speech.StreamingRecognizeRequest(audio_content=content)
+            speech.StreamingRecognizeRequest(audio_content=content) for content in contents
         )
 
         responses = self.client.streaming_recognize(self.streaming_config, requests)

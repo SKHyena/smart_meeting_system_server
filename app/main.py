@@ -224,8 +224,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await websocket.accept()
     try:
         while True:
-            content = await websocket.receive_bytes()            
-            text = transcription_service.transcribe(content)
+            bytes_arr = await websocket.receive_bytes()            
+            text = transcription_service.transcribe(bytes_arr)
             await websocket.send_text(text)
             # chat_manager.broadcast(
             #     json.dumps({
