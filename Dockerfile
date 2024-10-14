@@ -9,6 +9,7 @@ COPY ./requirements.txt /code/requirements.txt
 
 #
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN sudo apt-get install ffmpeg
 
 ENV DB_USER=
 ENV DB_PASSWORD=
