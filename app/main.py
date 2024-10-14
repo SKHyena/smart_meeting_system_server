@@ -295,9 +295,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     except WebSocketDisconnect:
         print("Client disconnected")
     except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        await websocket.close()
+        print(f"Error: {e}")    
 
 
 @app.websocket("/ws/{client_id}")
