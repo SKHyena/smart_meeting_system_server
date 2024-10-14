@@ -233,17 +233,18 @@ async def summarize():
 
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    min_buffer_size = 100000
     await websocket.accept()
     try:
         while True:
             bytes_arr = await websocket.receive_bytes()
 
-            if len(bytes_arr) < 50000:
-                continue
+            # if len(bytes_arr) < min_buffer_size:
+            #     continue
 
-            audio = AudioSegment.from_file(io.BytesIO(bytes_arr), format="webm")  # webm -> pcm 변환
-            pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
-            text = transcription_service.transcribe(pcm_audio.raw_data)
+            # audio = AudioSegment.from_file(io.BytesIO(bytes_arr), format="webm")  # webm -> pcm 변환
+            # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
+            text = transcription_service.transcribe(bytes_arr)
             logger.info(f"transcribed text : {text}")
             await websocket.send_text(text)
 
