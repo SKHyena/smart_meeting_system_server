@@ -17,7 +17,7 @@ class ChatServiceManager:
         self.active_connections[client_id] = websocket
         self.mic_status[client_id] = True
 
-        self.send_personal_message(self._build_mic_status(), client_id)
+        await self.send_personal_message(self._build_mic_status(), client_id)
 
     def disconnect(self, websocket: WebSocket, client_id: int):
         if client_id in self.active_connections:

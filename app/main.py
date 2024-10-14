@@ -226,6 +226,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         while True:
             bytes_arr = await websocket.receive_bytes()            
             text = transcription_service.transcribe(bytes_arr)
+            logger.info(f"transcribed text : {text}")
             await websocket.send_text(text)
             # chat_manager.broadcast(
             #     json.dumps({
@@ -244,10 +245,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await chat_manager.connect(websocket, client_id)
 
-    mic_status: dict[int, str] = {}
-    for id in chat_manager.mic_status:
-        mic_status[id] = "on" if chat_manager.mic_status[id] else "off"
-    await chat_manager.send_personal_message(json.dumps(mic_status), client_id)    
+    # mic_status: dict[int, str] = {}
+    # for id in chat_manager.mic_status:
+    #     mic_status[id] = "on" if chat_manager.mic_status[id] else "off"
+    # await chat_manager.send_personal_message(json.dumps(mic_status), client_id)    
     logger.info(f"{chat_manager.active_connections}")
 
     try:

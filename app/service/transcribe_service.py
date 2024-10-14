@@ -20,7 +20,8 @@ class TranscriptionService:
         self.logger = logger
     
     def transcribe(self, bytes_arr: bytes) -> str:        
-        contents = [bytes_arr]
+        self.logger.info(f"byte array : {bytes}")
+        contents = [bytes_arr]        
         requests = (
             speech.StreamingRecognizeRequest(audio_content=content) for content in contents
         )
@@ -51,6 +52,13 @@ class TranscriptionService:
         """
         transcript = ""
         self.logger.info(f"transcription response : {responses}")
+
+        for response in responses:
+            each_result = response.results
+            self.logger.info(f"each response result : {each_result}")
+        #<google.api_core.grpc_helpers._StreamingResponseIterator
+        speech.StreamingRecognizeResponse
+
 
         num_chars_printed = 0
         for response in responses:
