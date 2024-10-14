@@ -10,7 +10,7 @@ class TranscriptionService:
         self.client = speech.SpeechClient()
         self.config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
-            sample_rate_hertz=48000,
+            sample_rate_hertz=16000,
             language_code="ko-KR",
         )
         self.streaming_config = speech.StreamingRecognitionConfig(
