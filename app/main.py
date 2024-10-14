@@ -224,17 +224,17 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await websocket.accept()
     try:
         while True:
-            content = await websocket.receive_bytes()
-            
-            text = transcription_service.transcribe(content)    
-            chat_manager.broadcast(
-                json.dumps({
-                    "type": "q&a",
-                    "id": client_id,
-                    "is_done": False,
-                    "timestamp": int(time.time())
-                })
-            )
+            content = await websocket.receive_bytes()            
+            text = transcription_service.transcribe(content)
+            websocket.send_text(text)
+            # chat_manager.broadcast(
+            #     json.dumps({
+            #         "type": "q&a",
+            #         "id": client_id,
+            #         "is_done": False,
+            #         "timestamp": int(time.time())
+            #     })
+            # )
 
     except WebSocketDisconnect:        
         logger.info(f"Client #{client_id} left the transcription websocket channel")
