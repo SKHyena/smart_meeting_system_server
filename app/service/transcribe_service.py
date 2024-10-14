@@ -49,6 +49,9 @@ class TranscriptionService:
         Returns:
             The transcribed text.
         """
+        transcript = ""
+        self.logger.info(f"transcription response : {responses}")
+
         num_chars_printed = 0
         for response in responses:
             if not response.results:
