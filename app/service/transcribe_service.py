@@ -53,11 +53,12 @@ class TranscriptionService:
         transcript = ""
         self.logger.info(f"transcription response : {responses}")
 
+        response_list = list(responses)
+        self.logger.info(f"transcription response length : {len(response_list)}")
+
         for response in responses:
             each_result = response.results
             self.logger.info(f"each response result : {each_result}")
-        #<google.api_core.grpc_helpers._StreamingResponseIterator
-        speech.StreamingRecognizeResponse
 
 
         num_chars_printed = 0
