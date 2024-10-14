@@ -4,6 +4,7 @@ import logging
 import io
 import urllib
 import time
+import asyncio
 from typing import List, Any, Optional, Union
 
 import boto3
@@ -52,7 +53,17 @@ mail_service = MailServiceManager(
     os.environ["MAIL_ACCOUNT"],
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
-transcription_service = TranscriptionService(logger=logger)
+# transcription_service = TranscriptionService(logger=logger)
+
+# Google Speech Client 설정
+client = speech.SpeechClient()
+
+# Google Speech API의 인식 설정
+config = speech.RecognitionConfig(
+    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
+    sample_rate_hertz=48000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
+    language_code="ko-KR"  # 인식할 언어 코드
+)
 
 
 def is_blank_or_none(value: str):
@@ -219,26 +230,74 @@ async def summarize():
     return {"summary": summary}
 
 
+# @app.websocket("/ws/transcribe/{client_id}")
+# async def websocket_endpoint(websocket: WebSocket, client_id: int):
+#     await websocket.accept()
+#     try:
+#         while True:
+#             bytes_arr = await websocket.receive_bytes()            
+#             text = transcription_service.transcribe(bytes_arr)
+#             logger.info(f"transcribed text : {text}")
+#             await websocket.send_text(text)
+#             # chat_manager.broadcast(
+#             #     json.dumps({
+#             #         "type": "q&a",
+#             #         "id": client_id,
+#             #         "is_done": False,
+#             #         "timestamp": int(time.time())
+#             #     })
+#             # )
+
+#     except WebSocketDisconnect:        
+#         logger.info(f"Client #{client_id} left the transcription websocket channel")
+
+
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await websocket.accept()
-    try:
-        while True:
-            bytes_arr = await websocket.receive_bytes()            
-            text = transcription_service.transcribe(bytes_arr)
-            logger.info(f"transcribed text : {text}")
-            await websocket.send_text(text)
-            # chat_manager.broadcast(
-            #     json.dumps({
-            #         "type": "q&a",
-            #         "id": client_id,
-            #         "is_done": False,
-            #         "timestamp": int(time.time())
-            #     })
-            # )
 
-    except WebSocketDisconnect:        
-        logger.info(f"Client #{client_id} left the transcription websocket channel")
+    # Google Speech API에 전송할 스트림 생성
+    def generate_audio_requests():
+        while True:
+            # 계속해서 데이터를 WebSocket으로부터 받음
+            audio_chunk = yield
+            if audio_chunk:
+                yield speech.StreamingRecognizeRequest(audio_content=audio_chunk)
+
+    # 스트림 요청 생성기
+    audio_requests = generate_audio_requests()
+    next(audio_requests)  # 첫 번째 호출로 제너레이터 준비
+
+    try:
+        # Google Speech-to-Text API의 스트리밍 인식 호출
+        streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
+        responses = client.streaming_recognize(streaming_config, audio_requests)
+
+        async def receive_audio():
+            """클라이언트로부터 오디오 데이터를 WebSocket으로 받음"""
+            while True:
+                try:
+                    data = await websocket.receive_bytes()
+                    audio_requests.send(data)
+                except WebSocketDisconnect:
+                    break
+
+        async def process_speech():
+            """Google Speech API에서 받은 텍스트 결과를 처리"""
+            for response in responses:
+                for result in response.results:
+                    logger.info(f"Recognized text: {result.alternatives[0].transcript}")
+                    await websocket.send_text(f"Recognized: {result.alternatives[0].transcript}")
+
+        # 오디오 수신 및 텍스트 변환 동시 처리
+        await asyncio.gather(receive_audio(), process_speech())
+
+    except WebSocketDisconnect:
+        print("Client disconnected")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        await websocket.close()
 
 
 @app.websocket("/ws/{client_id}")
