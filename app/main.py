@@ -60,7 +60,7 @@ client = speech.SpeechClient()
 
 # Google Speech API의 인식 설정
 config = speech.RecognitionConfig(
-    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
+    encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,  # 오디오 인코딩 방식
     sample_rate_hertz=48000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
     language_code="ko-KR"  # 인식할 언어 코드
 )
