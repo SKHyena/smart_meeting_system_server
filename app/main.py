@@ -226,7 +226,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         while True:
             content = await websocket.receive_bytes()            
             text = transcription_service.transcribe(content)
-            websocket.send_text(text)
+            await websocket.send_text(text)
             # chat_manager.broadcast(
             #     json.dumps({
             #         "type": "q&a",
@@ -247,7 +247,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     mic_status: dict[int, str] = {}
     for id in chat_manager.mic_status:
         mic_status[id] = "on" if chat_manager.mic_status[id] else "off"
-    chat_manager.send_personal_message(json.dumps(mic_status), client_id)    
+    await chat_manager.send_personal_message(json.dumps(mic_status), client_id)    
     logger.info(f"{chat_manager.active_connections}")
 
     try:
@@ -268,7 +268,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                     )
                 )
 
-            chat_manager.broadcast(data)
+            await chat_manager.broadcast(data)
 
     except WebSocketDisconnect:
         chat_manager.disconnect(websocket, client_id)
