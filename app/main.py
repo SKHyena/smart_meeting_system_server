@@ -10,11 +10,13 @@ import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
+from google.cloud import speech
 
 from .provider.database_manager import DatabaseManager
 from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
 from .service.mail_service import MailServiceManager
+from .service.transcribe_service import TranscriptionService
 from .model.file_info import FileInfo
 from .model.attendee import Attendance
 from .model.utterance import Utterance
@@ -50,6 +52,7 @@ mail_service = MailServiceManager(
     os.environ["MAIL_ACCOUNT"],
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
+transcription_service = TranscriptionService(logger=logger)
 
 
 def is_blank_or_none(value: str):
@@ -115,7 +118,7 @@ async def update_meeting(status: str):
     
     if status not in ["정회", "재개"]:
         db_manager.update_meeting_status_table(status)
-        
+
     chat_manager.broadcast(json.dumps(
         {"type": "meeting_status", "status": meeting_status[status]}
     ))
@@ -214,6 +217,27 @@ async def summarize():
     db_manager.update_meeting_summary_table(summary)
 
     return {"summary": summary}
+
+
+@app.websocket("/ws/transcribe/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    await websocket.accept()
+    try:
+        while True:
+            content = await websocket.receive_bytes()
+            
+            text = transcription_service.transcribe(content)    
+            chat_manager.broadcast(
+                json.dumps({
+                    "type": "q&a",
+                    "id": client_id,
+                    "is_done": False,
+                    "timestamp": int(time.time())
+                })
+            )
+
+    except WebSocketDisconnect:        
+        logger.info(f"Client #{client_id} left the transcription websocket channel")
 
 
 @app.websocket("/ws/{client_id}")
