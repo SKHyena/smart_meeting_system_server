@@ -260,40 +260,41 @@ async def summarize():
 
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await websocket.accept()    
+    await websocket.accept()
 
-    try:
-        async def receive_audio():
-            try:
-                while True:
-                    mic_stream_manager._fill_buffer(await websocket.receive_bytes())
-            except WebSocketDisconnect:
-                logger.error("Client disconnected")            
-        
-        async def process_speech():
-            with mic_stream_manager as stream:
-                while not stream.closed:
-                    stream.audio_input = []
-                    audio_generator = stream.generator()
+    async def receive_audio():
+        try:
+            while True:
+                mic_stream_manager._fill_buffer(await websocket.receive_bytes())
+        except WebSocketDisconnect:
+            logger.error("Client disconnected")             
 
-                    requests = (
-                        speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-                    )
+    async def process_speech():
+        with mic_stream_manager as stream:
+            while not stream.closed:
+                stream.audio_input = []
+                audio_generator = stream.generator()
 
-                    responses = client.streaming_recognize(streaming_config, requests)
+                requests = (
+                    speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
+                )
 
-                    for response in listen_print_loop(responses, stream):
-                        await websocket.send_text(response)
+                responses = client.streaming_recognize(streaming_config, requests)
 
-                    if stream.result_end_time > 0:
-                        stream.final_request_end_time = stream.is_final_end_time
-                    stream.result_end_time = 0
-                    stream.last_audio_input = []
-                    stream.last_audio_input = stream.audio_input
-                    stream.audio_input = []
-                    stream.restart_counter = stream.restart_counter + 1
+                for response in listen_print_loop(responses, stream):
+                    await websocket.send_text(response)
 
-                    stream.new_stream = True
+                if stream.result_end_time > 0:
+                    stream.final_request_end_time = stream.is_final_end_time
+                stream.result_end_time = 0
+                stream.last_audio_input = []
+                stream.last_audio_input = stream.audio_input
+                stream.audio_input = []
+                stream.restart_counter = stream.restart_counter + 1
+
+                stream.new_stream = True
+
+    try:                        
         tasks = [asyncio.ensure_future(receive_audio()), asyncio.ensure_future(process_speech())]
         await asyncio.gather(*tasks)
 
