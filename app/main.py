@@ -265,7 +265,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     async def receive_audio():
         try:
             while True:
-                mic_stream_manager._fill_buffer(await websocket.receive_bytes())
+                audio_chunk = await websocket.receive_bytes()
+                logger.info(f"length of bytes : {len(audio_chunk)}")
+                mic_stream_manager._fill_buffer(audio_chunk)
         except WebSocketDisconnect:
             logger.error("Client disconnected")             
 
@@ -278,6 +280,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 requests = (
                     speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
                 )
+                logger.info(f"length of requests : {len(requests)}")
 
                 responses = client.streaming_recognize(streaming_config, requests)
 
@@ -294,9 +297,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
                 stream.new_stream = True
 
-    try:                        
-        tasks = [asyncio.ensure_future(receive_audio()), asyncio.ensure_future(process_speech())]
-        await asyncio.gather(*tasks)
+    try:                                
+        await asyncio.gather(receive_audio(), process_speech())
 
     except WebSocketDisconnect:
         logger.info("Client disconnected")
