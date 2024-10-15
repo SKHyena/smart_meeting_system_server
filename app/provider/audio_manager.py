@@ -3,8 +3,6 @@ import time
 import queue
 from typing import Generator
 
-import pyaudio
-
 
 # Audio recording parameters
 STREAMING_LIMIT = 240000  # 4 minutes
@@ -119,7 +117,7 @@ class ResumableMicrophoneSocketStream:
         returns: None
         """
         self._buff.put(in_data)
-        return None, pyaudio.paContinue
+        return None
 
     def generator(self: object) -> object:
         """Stream Audio from microphone to API and to local buffer
