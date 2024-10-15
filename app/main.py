@@ -279,10 +279,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
                 requests = (
                     speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-                )
-                logger.info(f"length of requests : {len(requests)}")
+                )                
+                logger.info(f"length of requests : {len(list(requests))}")
 
-                responses = client.streaming_recognize(streaming_config, requests)
+                responses = client.streaming_recognize(streaming_config, requests)                
 
                 for response in listen_print_loop(responses, stream):
                     await websocket.send_text(response)
