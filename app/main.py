@@ -241,9 +241,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
             # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
             # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
-            text = transcription_service.transcribe(audio_chunk)
-            logger.info(f"transcribed text : {text}")
-            await websocket.send_text(text)
+            transcriptions = transcription_service.transcribe(audio_chunk)
+
+            for transcription in transcriptions:
+                await websocket.send_text(transcription)
+            
 
     except WebSocketDisconnect:        
         logger.info(f"Client #{client_id} left the transcription websocket channel")
