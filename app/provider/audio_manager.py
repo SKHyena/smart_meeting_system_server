@@ -180,7 +180,7 @@ class ResumableMicrophoneSocketStream:
             yield b"".join(data)
 
 
-def listen_print_loop(responses: object, stream: object) -> Generator[str]:
+def listen_print_loop(responses: object, stream: object) -> Generator[str, None, None]:
     
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
