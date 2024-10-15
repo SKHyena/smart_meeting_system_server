@@ -310,32 +310,32 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 #         logger.error(f"Error: {e}")        
 
 
-# @app.websocket("/ws/{client_id}")
-# async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     await chat_manager.connect(websocket, client_id)
-#     logger.info(f"{chat_manager.active_connections}")
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    await chat_manager.connect(websocket, client_id)
+    logger.info(f"{chat_manager.active_connections}")
 
-#     try:
-#         while True:
-#             data: str = await websocket.receive_text()
-#             json_data: dict = json.loads(data)
+    try:
+        while True:
+            data: str = await websocket.receive_text()
+            json_data: dict = json.loads(data)
 
-#             if json_data["type"] == "mic":
-#                 logger.info(f"{client_id} client has changed mic status : {json_data['status']}")
+            if json_data["type"] == "mic":
+                logger.info(f"{client_id} client has changed mic status : {json_data['status']}")
 
-#             if json_data["type"] == "q&a" and json_data["id_done"]:                
-#                 logger.info(f"Q&A message: {json_data['message']}")
-#                 chat_manager.qa_list.append(
-#                     Utterance(
-#                         timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestamp"]),
-#                         speaker=json_data["id"],
-#                         text=json_data["message"]
-#                     )
-#                 )
+            if json_data["type"] == "q&a" and json_data["id_done"]:                
+                logger.info(f"Q&A message: {json_data['message']}")
+                chat_manager.qa_list.append(
+                    Utterance(
+                        timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestamp"]),
+                        speaker=json_data["id"],
+                        text=json_data["message"]
+                    )
+                )
 
-#             await chat_manager.broadcast(data)
+            await chat_manager.broadcast(data)
 
-#     except WebSocketDisconnect:
-#         chat_manager.disconnect(websocket, client_id)
-#         # await chat_manager.broadcast(f"Client #{client_id} left the chat")
-#         logger.info(f"Client #{client_id} left the chat")
+    except WebSocketDisconnect:
+        chat_manager.disconnect(websocket, client_id)
+        # await chat_manager.broadcast(f"Client #{client_id} left the chat")
+        logger.info(f"Client #{client_id} left the chat")
