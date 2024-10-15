@@ -7,7 +7,7 @@ from typing import Generator
 # Audio recording parameters
 STREAMING_LIMIT = 240000  # 4 minutes
 SAMPLE_RATE = 16000
-CHUNK_SIZE = int(SAMPLE_RATE / 10)  # 100ms
+CHUNK_SIZE = 1366  # 100ms
 
 
 def get_current_time() -> int:
@@ -26,7 +26,7 @@ class ResumableMicrophoneSocketStream:
     def __init__(
         self: object,
         rate: int = SAMPLE_RATE,
-        chunk_size: int = CHUNK_SIZE,
+        chunk_size: int = 500,
     ) -> None:
         """Creates a resumable microphone stream.
 
