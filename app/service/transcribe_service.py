@@ -10,7 +10,7 @@ class TranscriptionService:
         self.client = speech.SpeechClient()
         self.config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            sample_rate_hertz=48000,
+            sample_rate_hertz=16000,
             language_code="ko-KR",
         )
         self.streaming_config = speech.StreamingRecognitionConfig(
@@ -62,7 +62,13 @@ class TranscriptionService:
 
             result = response.results[0]
             transcript = result.alternatives[0].transcript
-            self.logger.info(f"transcription result : {transcript}")
 
+            if result.is_final:
+                self.logger.info(f"final text : {transcript}")
+                return f"final text : {transcript}"
+                
+            else:
+                self.logger.info(f"transient text : {transcript}")
+                return f"transient text : {transcript}"
 
-        return transcript
+        return transcript        

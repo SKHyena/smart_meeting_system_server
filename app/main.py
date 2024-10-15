@@ -54,17 +54,17 @@ mail_service = MailServiceManager(
     os.environ["MAIL_ACCOUNT"],
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
-# transcription_service = TranscriptionService(logger=logger)
+transcription_service = TranscriptionService(logger=logger)
 
-# Google Speech Client 설정
-client = speech.SpeechClient()
+# # Google Speech Client 설정
+# client = speech.SpeechClient()
 
-# Google Speech API의 인식 설정
-config = speech.RecognitionConfig(
-    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
-    sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
-    language_code="ko-KR"  # 인식할 언어 코드
-)
+# # Google Speech API의 인식 설정
+# config = speech.RecognitionConfig(
+#     encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
+#     sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
+#     language_code="ko-KR"  # 인식할 언어 코드
+# )
 
 
 def is_blank_or_none(value: str):
@@ -231,92 +231,84 @@ async def summarize():
     return {"summary": summary}
 
 
-# @app.websocket("/ws/transcribe/{client_id}")
-# async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     min_buffer_size = 100000
-#     await websocket.accept()
-#     try:
-#         while True:
-#             bytes_arr = await websocket.receive_bytes()
-
-#             # if len(bytes_arr) < min_buffer_size:
-#             #     continue
-
-#             # audio = AudioSegment.from_file(io.BytesIO(bytes_arr), format="webm")  # webm -> pcm 변환
-#             # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
-#             text = transcription_service.transcribe(bytes_arr)
-#             logger.info(f"transcribed text : {text}")
-#             await websocket.send_text(text)
-
-#     except WebSocketDisconnect:        
-#         logger.info(f"Client #{client_id} left the transcription websocket channel")
-
-
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    min_buffer_size = 100000
     await websocket.accept()
-
-    # Google Speech API에 전송할 스트림 생성
-    def generate_audio_requests():
-        while True:
-            # 계속해서 데이터를 WebSocket으로부터 받음
-            audio_chunk = yield
-            if audio_chunk:
-                # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
-                # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
-                yield speech.StreamingRecognizeRequest(audio_content=audio_chunk)
-
-    # 스트림 요청 생성기
-    audio_requests = generate_audio_requests()
-    next(audio_requests)  # 첫 번째 호출로 제너레이터 준비
-
     try:
-        # Google Speech-to-Text API의 스트리밍 인식 호출
-        streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
-        responses = client.streaming_recognize(streaming_config, audio_requests)
+        while True:
+            audio_chunk = await websocket.receive_bytes()
 
-        async def receive_audio():
-            """클라이언트로부터 오디오 데이터를 WebSocket으로 받음"""
-            while True:
-                try:
-                    data = await websocket.receive_bytes()
-                    audio_requests.send(data)
-                except WebSocketDisconnect:
-                    break
+            # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
+            # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
+            text = transcription_service.transcribe(audio_chunk)
+            logger.info(f"transcribed text : {text}")
+            await websocket.send_text(text)
 
-        async def process_speech():
-            """Google Speech API에서 받은 텍스트 결과를 처리"""
-            for response in responses:
-                if not response.results:
-                    continue
+    except WebSocketDisconnect:        
+        logger.info(f"Client #{client_id} left the transcription websocket channel")
 
-                result = response.results[0]
-                if not result.alternatives:
-                    continue
 
-                transcript = result.alternatives[0].transcript
-                if result.is_final:
-                    await websocket.send_text(f"final text : {transcript}")
-                else:
-                    await websocket.send_text(f"transient text : {transcript}")                
+# @app.websocket("/ws/transcribe/{client_id}")
+# async def websocket_endpoint(websocket: WebSocket, client_id: int):
+#     await websocket.accept()
 
-        # 오디오 수신 및 텍스트 변환 동시 처리
-        await asyncio.gather(receive_audio(), process_speech())
+#     # Google Speech API에 전송할 스트림 생성
+#     def generate_audio_requests():
+#         while True:
+#             # 계속해서 데이터를 WebSocket으로부터 받음
+#             audio_chunk = yield
+#             if audio_chunk:
+#                 # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
+#                 # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
+#                 yield speech.StreamingRecognizeRequest(audio_content=audio_chunk)
 
-    except WebSocketDisconnect:
-        logger.info("Client disconnected")
-    except Exception as e:
-        logger.error(f"Error: {e}")    
+#     # 스트림 요청 생성기
+#     audio_requests = generate_audio_requests()
+#     next(audio_requests)  # 첫 번째 호출로 제너레이터 준비
+
+#     try:
+#         # Google Speech-to-Text API의 스트리밍 인식 호출
+#         streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
+#         responses = client.streaming_recognize(streaming_config, audio_requests)
+
+#         async def receive_audio():
+#             """클라이언트로부터 오디오 데이터를 WebSocket으로 받음"""
+#             while True:
+#                 try:
+#                     data = await websocket.receive_bytes()
+#                     audio_requests.send(data)
+#                 except WebSocketDisconnect:
+#                     break
+
+#         async def process_speech():
+#             """Google Speech API에서 받은 텍스트 결과를 처리"""
+#             for response in responses:
+#                 if not response.results:
+#                     continue
+
+#                 result = response.results[0]
+#                 if not result.alternatives:
+#                     continue
+
+#                 transcript = result.alternatives[0].transcript
+#                 if result.is_final:
+#                     await websocket.send_text(f"final text : {transcript}")
+#                 else:
+#                     await websocket.send_text(f"transient text : {transcript}")                
+
+#         # 오디오 수신 및 텍스트 변환 동시 처리
+#         await asyncio.gather(receive_audio(), process_speech())
+
+#     except WebSocketDisconnect:
+#         logger.info("Client disconnected")
+#     except Exception as e:
+#         logger.error(f"Error: {e}")    
 
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await chat_manager.connect(websocket, client_id)
-
-    # mic_status: dict[int, str] = {}
-    # for id in chat_manager.mic_status:
-    #     mic_status[id] = "on" if chat_manager.mic_status[id] else "off"
-    # await chat_manager.send_personal_message(json.dumps(mic_status), client_id)    
     logger.info(f"{chat_manager.active_connections}")
 
     try:
