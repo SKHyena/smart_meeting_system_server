@@ -300,7 +300,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
         receive_audio_task = asyncio.create_task(receive_audio(websocket))
         process_audio_task = asyncio.create_task(process_speech(websocket))
-        await asyncio.wiat(
+        await asyncio.wait(
             {receive_audio_task, process_audio_task}
         )
 
