@@ -263,7 +263,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await websocket.accept()    
 
     try:                                
-        async def receive_audio():
+        async def receive_audio(websocket: WebSocket):
             try:
                 while True:
                     audio_chunk = await websocket.receive_bytes()
@@ -272,7 +272,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             except WebSocketDisconnect:
                 logger.error("Client disconnected")             
 
-        async def process_speech():
+        async def process_speech(websocket: WebSocket):
             with mic_stream_manager as stream:
                 while not stream.closed:
                     stream.audio_input = []
@@ -298,7 +298,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
                     stream.new_stream = True
 
-        await asyncio.gather(receive_audio(), process_speech())
+        receive_audio_task = asyncio.create_task(receive_audio(websocket))
+        process_audio_task = asyncio.create_task(process_speech(websocket))
+        await asyncio.wiat(
+            {receive_audio_task, process_audio_task}
+        )
 
     except WebSocketDisconnect:
         logger.info("Client disconnected")
