@@ -55,17 +55,17 @@ mail_service = MailServiceManager(
     os.environ["MAIL_ACCOUNT"],
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
-# transcription_service = TranscriptionService(logger=logger)
+transcription_service = TranscriptionService(logger=logger)
 mic_stream_manager = ResumableMicrophoneSocketStream()
 
 
-client = speech.SpeechClient()
-config = speech.RecognitionConfig(
-    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
-    sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
-    language_code="ko-KR"  # 인식할 언어 코드
-)
-streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
+# client = speech.SpeechClient()
+# config = speech.RecognitionConfig(
+#     encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
+#     sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
+#     language_code="ko-KR"  # 인식할 언어 코드
+# )
+# streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
 
 
 def is_blank_or_none(value: str):
@@ -232,110 +232,110 @@ async def summarize():
     return {"summary": summary}
 
 
-# @app.websocket("/ws/transcribe/{client_id}")
-# async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     min_buffer_size = 300000
-#     audio_content = bytes()
-
-#     await websocket.accept()
-#     try:
-#         while True:            
-#             audio_content += await websocket.receive_bytes()
-#             if len(audio_content) < min_buffer_size:
-#                 continue
-
-#             # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
-#             # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
-#             transcriptions = transcription_service.transcribe(audio_content)
-
-#             for transcription in transcriptions:
-#                 await websocket.send_text(transcription)
-
-#             audio_content = bytes()
-            
-
-#     except WebSocketDisconnect:        
-#         logger.info(f"Client #{client_id} left the transcription websocket channel")
-
-
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await websocket.accept()    
+    min_buffer_size = 200000
+    audio_content = bytes()
 
-    try:                                
-        async def receive_audio(websocket: WebSocket):
-            try:
-                while True:
-                    audio_chunk = await websocket.receive_bytes()
-                    logger.info(f"length of bytes : {len(audio_chunk)}")
-                    mic_stream_manager._fill_buffer(audio_chunk)
-            except WebSocketDisconnect:
-                logger.error("Client disconnected")             
-
-        async def process_speech(websocket: WebSocket):
-            with mic_stream_manager as stream:
-                while not stream.closed:
-                    stream.audio_input = []
-                    audio_generator = stream.generator()
-
-                    requests = (
-                        speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-                    )                
-                    logger.info(f"length of requests : {len(list(requests))}")
-
-                    responses = client.streaming_recognize(streaming_config, requests)                
-
-                    for response in listen_print_loop(responses, stream):
-                        await websocket.send_text(response)
-
-                    if stream.result_end_time > 0:
-                        stream.final_request_end_time = stream.is_final_end_time
-                    stream.result_end_time = 0
-                    stream.last_audio_input = []
-                    stream.last_audio_input = stream.audio_input
-                    stream.audio_input = []
-                    stream.restart_counter = stream.restart_counter + 1
-
-                    stream.new_stream = True
-
-        receive_audio_task = asyncio.create_task(receive_audio(websocket))
-        process_audio_task = asyncio.create_task(process_speech(websocket))
-        await asyncio.wait(
-            {receive_audio_task, process_audio_task}
-        )
-
-    except WebSocketDisconnect:
-        logger.info("Client disconnected")
-    except Exception as e:
-        logger.error(f"Error: {e}")        
-
-
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await chat_manager.connect(websocket, client_id)
-    logger.info(f"{chat_manager.active_connections}")
-
+    await websocket.accept()
     try:
-        while True:
-            data: str = await websocket.receive_text()
-            json_data: dict = json.loads(data)
+        while True:            
+            audio_content += await websocket.receive_bytes()
+            if len(audio_content) < min_buffer_size:
+                continue
 
-            if json_data["type"] == "mic":
-                logger.info(f"{client_id} client has changed mic status : {json_data['status']}")
+            # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
+            # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
+            transcriptions = transcription_service.transcribe(audio_content)
 
-            if json_data["type"] == "q&a" and json_data["id_done"]:                
-                logger.info(f"Q&A message: {json_data['message']}")
-                chat_manager.qa_list.append(
-                    Utterance(
-                        timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestamp"]),
-                        speaker=json_data["id"],
-                        text=json_data["message"]
-                    )
-                )
+            for transcription in transcriptions:
+                await websocket.send_text(transcription)
 
-            await chat_manager.broadcast(data)
+            audio_content = bytes()
+            
 
-    except WebSocketDisconnect:
-        chat_manager.disconnect(websocket, client_id)
-        # await chat_manager.broadcast(f"Client #{client_id} left the chat")
-        logger.info(f"Client #{client_id} left the chat")
+    except WebSocketDisconnect:        
+        logger.info(f"Client #{client_id} left the transcription websocket channel")
+
+
+# @app.websocket("/ws/transcribe/{client_id}")
+# async def websocket_endpoint(websocket: WebSocket, client_id: int):
+#     await websocket.accept()    
+
+#     try:                                
+#         async def receive_audio(websocket: WebSocket):
+#             try:
+#                 while True:
+#                     audio_chunk = await websocket.receive_bytes()
+#                     logger.info(f"length of bytes : {len(audio_chunk)}")
+#                     mic_stream_manager._fill_buffer(audio_chunk)
+#             except WebSocketDisconnect:
+#                 logger.error("Client disconnected")             
+
+#         async def process_speech(websocket: WebSocket):
+#             with mic_stream_manager as stream:
+#                 while not stream.closed:
+#                     stream.audio_input = []
+#                     audio_generator = stream.generator()
+
+#                     requests = (
+#                         speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
+#                     )                
+#                     logger.info(f"length of requests : {len(list(requests))}")
+
+#                     responses = client.streaming_recognize(streaming_config, requests)                
+
+#                     for response in listen_print_loop(responses, stream):
+#                         await websocket.send_text(response)
+
+#                     if stream.result_end_time > 0:
+#                         stream.final_request_end_time = stream.is_final_end_time
+#                     stream.result_end_time = 0
+#                     stream.last_audio_input = []
+#                     stream.last_audio_input = stream.audio_input
+#                     stream.audio_input = []
+#                     stream.restart_counter = stream.restart_counter + 1
+
+#                     stream.new_stream = True
+
+#         receive_audio_task = asyncio.create_task(receive_audio(websocket))
+#         process_audio_task = asyncio.create_task(process_speech(websocket))
+#         await asyncio.wait(
+#             {receive_audio_task, process_audio_task}
+#         )
+
+#     except WebSocketDisconnect:
+#         logger.info("Client disconnected")
+#     except Exception as e:
+#         logger.error(f"Error: {e}")        
+
+
+# @app.websocket("/ws/{client_id}")
+# async def websocket_endpoint(websocket: WebSocket, client_id: int):
+#     await chat_manager.connect(websocket, client_id)
+#     logger.info(f"{chat_manager.active_connections}")
+
+#     try:
+#         while True:
+#             data: str = await websocket.receive_text()
+#             json_data: dict = json.loads(data)
+
+#             if json_data["type"] == "mic":
+#                 logger.info(f"{client_id} client has changed mic status : {json_data['status']}")
+
+#             if json_data["type"] == "q&a" and json_data["id_done"]:                
+#                 logger.info(f"Q&A message: {json_data['message']}")
+#                 chat_manager.qa_list.append(
+#                     Utterance(
+#                         timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestamp"]),
+#                         speaker=json_data["id"],
+#                         text=json_data["message"]
+#                     )
+#                 )
+
+#             await chat_manager.broadcast(data)
+
+#     except WebSocketDisconnect:
+#         chat_manager.disconnect(websocket, client_id)
+#         # await chat_manager.broadcast(f"Client #{client_id} left the chat")
+#         logger.info(f"Client #{client_id} left the chat")
