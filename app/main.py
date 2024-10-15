@@ -283,7 +283,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
                     responses = client.streaming_recognize(streaming_config, requests)
 
-                    for response in listen_print_loop(responses):
+                    for response in listen_print_loop(responses, stream):
                         await websocket.send_text(response)
 
                     if stream.result_end_time > 0:
