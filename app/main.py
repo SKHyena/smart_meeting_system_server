@@ -275,7 +275,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             with mic_stream_manager as stream:
                 while not stream.closed:
                     stream.audio_input = []
-                    audio_generator = stream.generator
+                    audio_generator = stream.generator()
 
                     requests = (
                         speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
