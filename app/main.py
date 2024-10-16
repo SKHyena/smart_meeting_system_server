@@ -264,18 +264,12 @@ async def summarize():
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)
 
-    try:                                
-        async def receive_audio(websocket: WebSocket, client_id: int):
-            try:
-                while True:
-                    audio_chunk = await websocket.receive_bytes()
-                    logger.info(f"length of bytes : {len(audio_chunk)}")
+    try:                                        
+        while True:    
+            audio_chunk = await websocket.receive_bytes()
+            logger.info(f"length of bytes : {len(audio_chunk)}")
+            audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
 
-                    audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
-            except WebSocketDisconnect:
-                logger.error("Client disconnected")             
-
-        async def process_speech(websocket: WebSocket, client_id: int):
             with audio_stream_manager.stream_status[client_id] as stream:
                 while not stream.closed:
                     stream.audio_input = []
@@ -299,9 +293,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                     stream.audio_input = []
                     stream.restart_counter = stream.restart_counter + 1
 
-                    stream.new_stream = True
-
-        await asyncio.gather(receive_audio(websocket, client_id), process_speech(websocket, client_id))
+                    stream.new_stream = True                    
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
