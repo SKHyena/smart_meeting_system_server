@@ -183,8 +183,7 @@ class ResumableMicrophoneSocketStream:
             yield b"".join(data)
 
 
-async def listen_print_loop(responses: object, stream: object, websocket: WebSocket):
-    
+def listen_print_loop(responses: object, stream: object):
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
             stream.start_time = get_current_time()
@@ -221,11 +220,11 @@ async def listen_print_loop(responses: object, stream: object, websocket: WebSoc
             stream.is_final_end_time = stream.result_end_time
             stream.last_transcript_was_final = True
 
-            await websocket.send_text(f"Final : {transcript}")
+            print(f"Final : {transcript}")
 
             if re.search(r"\b(exit|quit)\b", transcript, re.I):                
                 stream.closed = True
                 break
         else:
             stream.last_transcript_was_final = False
-            await websocket.send_text(f"Transient : {transcript}")
+            print(f"Transient : {transcript}")

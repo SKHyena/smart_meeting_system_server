@@ -59,7 +59,7 @@ mail_service = MailServiceManager(
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
 # transcription_service = TranscriptionService(logger=logger)
-# mic_stream_manager = ResumableMicrophoneSocketStream()
+mic_stream_manager = ResumableMicrophoneSocketStream()
 
 
 client = speech.SpeechClient()
@@ -69,6 +69,35 @@ config = speech.RecognitionConfig(
     language_code="ko-KR"  # 인식할 언어 코드
 )
 streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
+
+
+def transcribe(manager: ResumableMicrophoneSocketStream):
+    with manager as stream:
+        stream.audio_input = []
+        audio_generator = stream.generator()
+
+        requests = (
+            speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
+        )                
+        logger.info("requests")
+
+        responses = client.streaming_recognize(streaming_config, requests)                
+        logger.info("responses")
+
+        listen_print_loop(responses, stream)
+        logger.info("print")
+
+        if stream.result_end_time > 0:
+            stream.final_request_end_time = stream.is_final_end_time
+        stream.result_end_time = 0
+        stream.last_audio_input = []
+        stream.last_audio_input = stream.audio_input
+        stream.audio_input = []
+        stream.restart_counter = stream.restart_counter + 1
+
+        stream.new_stream = True
+
+threading.Thread(target=transcribe, args=(mic_stream_manager, )).start()
 
 
 def is_blank_or_none(value: str):
@@ -267,36 +296,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
     try:
         while True:
-            with audio_stream_manager.stream_status[client_id] as stream:
-                audio_chunk = await websocket.receive_bytes()
-                logger.info(f"length of bytes : {len(audio_chunk)}")
-                audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
-                logger.info("fill chunk over")
-
-                stream.audio_input = []
-                audio_generator = stream.generator()
-                logger.info("generator")
-
-                requests = (
-                    speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-                )                
-                logger.info("requests")
-
-                responses = client.streaming_recognize(streaming_config, requests)                
-                logger.info("responses")
-
-                await listen_print_loop(responses, stream, audio_stream_manager.active_connections[client_id])
-                logger.info("print")
-
-                if stream.result_end_time > 0:
-                    stream.final_request_end_time = stream.is_final_end_time
-                stream.result_end_time = 0
-                stream.last_audio_input = []
-                stream.last_audio_input = stream.audio_input
-                stream.audio_input = []
-                stream.restart_counter = stream.restart_counter + 1
-
-                stream.new_stream = True        
+            audio_chunk = await websocket.receive_bytes()
+            mic_stream_manager._fill_buffer(audio_chunk)
+            logger.info(f"length of bytes : {len(audio_chunk)}")             
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
