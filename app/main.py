@@ -71,7 +71,7 @@ config = speech.RecognitionConfig(
 streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
 
 
-def transcribe(manager: ResumableMicrophoneSocketStream):
+def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
     with manager as stream:
         stream.audio_input = []
         audio_generator = stream.generator()
@@ -79,13 +79,9 @@ def transcribe(manager: ResumableMicrophoneSocketStream):
         requests = (
             speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
         )                
-        logger.info("requests")
 
         responses = client.streaming_recognize(streaming_config, requests)                
-        logger.info("responses")
-
         listen_print_loop(responses, stream)
-        logger.info("print")
 
         if stream.result_end_time > 0:
             stream.final_request_end_time = stream.is_final_end_time
@@ -96,8 +92,6 @@ def transcribe(manager: ResumableMicrophoneSocketStream):
         stream.restart_counter = stream.restart_counter + 1
 
         stream.new_stream = True
-
-threading.Thread(target=transcribe, args=(mic_stream_manager, )).start()
 
 
 def is_blank_or_none(value: str):
@@ -293,6 +287,7 @@ async def summarize():
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)    
+    threading.Thread(target=transcribe, args=(ResumableMicrophoneSocketStream(), client_id, )).start()
 
     try:
         while True:

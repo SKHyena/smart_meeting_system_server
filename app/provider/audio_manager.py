@@ -1,9 +1,10 @@
 import re
 import time
 import queue
+import json
 from typing import Generator
 
-from fastapi import WebSocket
+from ..service.chat_service import ChatServiceManager
 
 
 # Audio recording parameters
@@ -183,7 +184,7 @@ class ResumableMicrophoneSocketStream:
             yield b"".join(data)
 
 
-def listen_print_loop(responses: object, stream: object):
+async def listen_print_loop(responses: object, stream: object, client_id: int):
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
             stream.start_time = get_current_time()
@@ -220,11 +221,11 @@ def listen_print_loop(responses: object, stream: object):
             stream.is_final_end_time = stream.result_end_time
             stream.last_transcript_was_final = True
 
-            print(f"Final : {transcript}")
+            print(f"{client_id}-Final : {transcript}")
 
             if re.search(r"\b(exit|quit)\b", transcript, re.I):                
                 stream.closed = True
                 break
         else:
             stream.last_transcript_was_final = False
-            print(f"Transient : {transcript}")
+            print(f"{client_id}-Transient : {transcript}")
