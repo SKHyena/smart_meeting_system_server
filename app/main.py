@@ -266,8 +266,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)    
 
     try:
-        async def process_audio(client_id: int):
-            with audio_stream_manager.stream_status[client_id] as stream:                
+        with audio_stream_manager.stream_status[client_id] as stream:       
+            while not stream.closed:         
+                audio_chunk = await websocket.receive_bytes()
+                logger.info(f"length of bytes : {len(audio_chunk)}")
+                audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
+
                 stream.audio_input = []
                 audio_generator = stream.generator()
 
@@ -288,14 +292,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 stream.audio_input = []
                 stream.restart_counter = stream.restart_counter + 1
 
-                stream.new_stream = True
-
-        while True:    
-            audio_chunk = await websocket.receive_bytes()
-            logger.info(f"length of bytes : {len(audio_chunk)}")
-            audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
-
-            await process_audio(client_id)
+                stream.new_stream = True        
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
