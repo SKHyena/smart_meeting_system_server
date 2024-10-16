@@ -85,8 +85,16 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
         responses = client.streaming_recognize(streaming_config, requests)                
         message_generator = listen_print_loop(responses, stream, client_id)
 
-        for message in message_generator:
-            await chat_manager.broadcast(message)
+        for message_dict in message_generator:
+            if message_dict["is_done"]:
+                chat_manager.qa_list.append(
+                    Utterance(
+                        timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
+                        speaker=client_id,
+                        text=message_dict["message"]
+                    )
+                )
+            await chat_manager.broadcast(json.dumps(message_dict))
 
         if stream.result_end_time > 0:
             stream.final_request_end_time = stream.is_final_end_time
