@@ -262,7 +262,7 @@ async def summarize():
 
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    audio_stream_manager.connect(websocket, client_id)
+    await audio_stream_manager.connect(websocket, client_id)
 
     try:                                
         async def receive_audio(websocket: WebSocket, client_id: int):
