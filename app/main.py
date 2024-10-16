@@ -298,7 +298,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         while True:
             audio_chunk = await websocket.receive_bytes()
             mic_stream_manager._fill_buffer(audio_chunk)
-            logger.info(f"length of bytes : {len(audio_chunk)}")             
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
