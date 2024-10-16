@@ -5,6 +5,7 @@ import io
 import urllib
 import time
 import asyncio
+import threading
 from typing import List, Any, Optional, Union
 
 import boto3
@@ -262,37 +263,44 @@ async def summarize():
 
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await audio_stream_manager.connect(websocket, client_id)    
+    await audio_stream_manager.connect(websocket, client_id)
+    process_audio_thread = threading.Thread(target=process_audio, args=(client_id, ))
 
-    try:                                        
+    try:
+        process_audio_thread.start()
+
         while True:    
             audio_chunk = await websocket.receive_bytes()
             logger.info(f"length of bytes : {len(audio_chunk)}")
-            audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
+            audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)            
 
-            with audio_stream_manager.stream_status[client_id] as stream:
-                stream.audio_input = []
-                audio_generator = stream.generator()
+            def process_audio(client_id: int):
+                with audio_stream_manager.stream_status[client_id] as stream:
+                    while not stream.closed:
+                        stream.audio_input = []
+                        audio_generator = stream.generator()
 
-                requests = (
-                    speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-                )                
-                logger.info(f"length of requests : {len(list(requests))}")
+                        requests = (
+                            speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
+                        )                
+                        logger.info(f"length of requests : {len(list(requests))}")
 
-                responses = client.streaming_recognize(streaming_config, requests)                
+                        responses = client.streaming_recognize(streaming_config, requests)                
 
-                for response in listen_print_loop(responses, stream):
-                    await websocket.send_text(response)
+                        for response in listen_print_loop(responses, stream):
+                            logger.info(f"response : {response}")
+                            # websocket.send_text(response)
 
-                if stream.result_end_time > 0:
-                    stream.final_request_end_time = stream.is_final_end_time
-                stream.result_end_time = 0
-                stream.last_audio_input = []
-                stream.last_audio_input = stream.audio_input
-                stream.audio_input = []
-                stream.restart_counter = stream.restart_counter + 1
+                        if stream.result_end_time > 0:
+                            stream.final_request_end_time = stream.is_final_end_time
+                        stream.result_end_time = 0
+                        stream.last_audio_input = []
+                        stream.last_audio_input = stream.audio_input
+                        stream.audio_input = []
+                        stream.restart_counter = stream.restart_counter + 1
 
-                stream.new_stream = True            
+                        stream.new_stream = True            
+                
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
