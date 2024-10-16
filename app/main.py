@@ -59,8 +59,6 @@ mail_service = MailServiceManager(
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
 # transcription_service = TranscriptionService(logger=logger)
-mic_stream_manager = ResumableMicrophoneSocketStream()
-
 
 client = speech.SpeechClient()
 config = speech.RecognitionConfig(
@@ -288,13 +286,13 @@ async def summarize():
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)    
     threading.Thread(
-        target=transcribe, args=(ResumableMicrophoneSocketStream(), client_id)
+        target=transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
     ).start()
 
     try:
         while True:
             audio_chunk = await websocket.receive_bytes()
-            mic_stream_manager._fill_buffer(audio_chunk)
+            audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
