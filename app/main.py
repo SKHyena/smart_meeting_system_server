@@ -81,7 +81,7 @@ def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
         )                
 
         responses = client.streaming_recognize(streaming_config, requests)                
-        listen_print_loop(responses, stream)
+        listen_print_loop(responses, stream, client_id)
 
         if stream.result_end_time > 0:
             stream.final_request_end_time = stream.is_final_end_time
@@ -287,7 +287,9 @@ async def summarize():
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)    
-    threading.Thread(target=transcribe, args=(ResumableMicrophoneSocketStream(), client_id, )).start()
+    threading.Thread(
+        target=transcribe, args=(ResumableMicrophoneSocketStream(), client_id)
+    ).start()
 
     try:
         while True:
