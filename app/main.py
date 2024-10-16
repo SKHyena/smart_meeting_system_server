@@ -271,18 +271,22 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 audio_chunk = await websocket.receive_bytes()
                 logger.info(f"length of bytes : {len(audio_chunk)}")
                 audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
+                logger.info("fill chunk over")
 
                 stream.audio_input = []
                 audio_generator = stream.generator()
+                logger.info("generator")
 
                 requests = (
                     speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
                 )                
-                logger.info(f"length of requests : {len(list(requests))}")
+                logger.info("requests")
 
                 responses = client.streaming_recognize(streaming_config, requests)                
+                logger.info("responses")
 
                 await listen_print_loop(responses, stream, audio_stream_manager.active_connections[client_id])
+                logger.info("print")
 
                 if stream.result_end_time > 0:
                     stream.final_request_end_time = stream.is_final_end_time
