@@ -26,7 +26,7 @@ class ResumableMicrophoneSocketStream:
     def __init__(
         self: object,
         rate: int = SAMPLE_RATE,
-        chunk_size: int = 500,
+        chunk_size: int = 1366,
     ) -> None:
         """Creates a resumable microphone stream.
 
