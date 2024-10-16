@@ -20,6 +20,7 @@ from .service.chat_service import ChatServiceManager
 from .service.llm.gpt_service import GptServiceManager
 from .service.mail_service import MailServiceManager
 from .service.transcribe_service import TranscriptionService
+from .service.audio_stream_service import AudioStreamServiceManager
 from .model.file_info import FileInfo
 from .model.attendee import Attendance
 from .model.utterance import Utterance
@@ -50,22 +51,23 @@ s3_client = boto3.client(
 )
 
 chat_manager = ChatServiceManager()
+audio_stream_manager = AudioStreamServiceManager()
 gpt_service = GptServiceManager(logger)
 mail_service = MailServiceManager(
     os.environ["MAIL_ACCOUNT"],
     os.environ["MAIL_APP_NUMBER"].replace("_", " ")
 )
-transcription_service = TranscriptionService(logger=logger)
-mic_stream_manager = ResumableMicrophoneSocketStream()
+# transcription_service = TranscriptionService(logger=logger)
+# mic_stream_manager = ResumableMicrophoneSocketStream()
 
 
-# client = speech.SpeechClient()
-# config = speech.RecognitionConfig(
-#     encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
-#     sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
-#     language_code="ko-KR"  # 인식할 언어 코드
-# )
-# streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
+client = speech.SpeechClient()
+config = speech.RecognitionConfig(
+    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
+    sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
+    language_code="ko-KR"  # 인식할 언어 코드
+)
+streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
 
 
 def is_blank_or_none(value: str):
@@ -232,82 +234,80 @@ async def summarize():
     return {"summary": summary}
 
 
-@app.websocket("/ws/transcribe/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    min_buffer_size = 200000
-    audio_content = bytes()
-
-    await websocket.accept()
-    try:
-        while True:            
-            audio_content += await websocket.receive_bytes()
-            if len(audio_content) < min_buffer_size:
-                continue
-
-            # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
-            # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
-            transcriptions = transcription_service.transcribe(audio_content)
-
-            for transcription in transcriptions:
-                await websocket.send_text(transcription)
-
-            audio_content = bytes()
-            
-
-    except WebSocketDisconnect:        
-        logger.info(f"Client #{client_id} left the transcription websocket channel")
-
-
 # @app.websocket("/ws/transcribe/{client_id}")
 # async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     await websocket.accept()    
+#     min_buffer_size = 200000
+#     audio_content = bytes()
 
-#     try:                                
-#         async def receive_audio(websocket: WebSocket):
-#             try:
-#                 while True:
-#                     audio_chunk = await websocket.receive_bytes()
-#                     logger.info(f"length of bytes : {len(audio_chunk)}")
-#                     mic_stream_manager._fill_buffer(audio_chunk)
-#             except WebSocketDisconnect:
-#                 logger.error("Client disconnected")             
+#     await websocket.accept()
+#     try:
+#         while True:            
+#             audio_content += await websocket.receive_bytes()
+#             if len(audio_content) < min_buffer_size:
+#                 continue
 
-#         async def process_speech(websocket: WebSocket):
-#             with mic_stream_manager as stream:
-#                 while not stream.closed:
-#                     stream.audio_input = []
-#                     audio_generator = stream.generator()
+#             # audio = AudioSegment.from_file(io.BytesIO(audio_chunk), format="webm")  # webm -> pcm 변환
+#             # pcm_audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)  # PCM으로 설정
+#             transcriptions = transcription_service.transcribe(audio_content)
 
-#                     requests = (
-#                         speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-#                     )                
-#                     logger.info(f"length of requests : {len(list(requests))}")
+#             for transcription in transcriptions:
+#                 await websocket.send_text(transcription)
 
-#                     responses = client.streaming_recognize(streaming_config, requests)                
+#             audio_content = bytes()
+            
 
-#                     for response in listen_print_loop(responses, stream):
-#                         await websocket.send_text(response)
+#     except WebSocketDisconnect:        
+#         logger.info(f"Client #{client_id} left the transcription websocket channel")
 
-#                     if stream.result_end_time > 0:
-#                         stream.final_request_end_time = stream.is_final_end_time
-#                     stream.result_end_time = 0
-#                     stream.last_audio_input = []
-#                     stream.last_audio_input = stream.audio_input
-#                     stream.audio_input = []
-#                     stream.restart_counter = stream.restart_counter + 1
 
-#                     stream.new_stream = True
+@app.websocket("/ws/transcribe/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    audio_stream_manager.connect(websocket, client_id)
 
-#         receive_audio_task = asyncio.create_task(receive_audio(websocket))
-#         process_audio_task = asyncio.create_task(process_speech(websocket))
-#         await asyncio.wait(
-#             {receive_audio_task, process_audio_task}
-#         )
+    try:                                
+        async def receive_audio(websocket: WebSocket, client_id: int):
+            try:
+                while True:
+                    audio_chunk = await websocket.receive_bytes()
+                    logger.info(f"length of bytes : {len(audio_chunk)}")
 
-#     except WebSocketDisconnect:
-#         logger.info("Client disconnected")
-#     except Exception as e:
-#         logger.error(f"Error: {e}")        
+                    audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
+            except WebSocketDisconnect:
+                logger.error("Client disconnected")             
+
+        async def process_speech(websocket: WebSocket, client_id: int):
+            with audio_stream_manager.stream_status[client_id] as stream:
+                while not stream.closed:
+                    stream.audio_input = []
+                    audio_generator = stream.generator()
+
+                    requests = (
+                        speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
+                    )                
+                    logger.info(f"length of requests : {len(list(requests))}")
+
+                    responses = client.streaming_recognize(streaming_config, requests)                
+
+                    for response in listen_print_loop(responses, stream):
+                        await websocket.send_text(response)
+
+                    if stream.result_end_time > 0:
+                        stream.final_request_end_time = stream.is_final_end_time
+                    stream.result_end_time = 0
+                    stream.last_audio_input = []
+                    stream.last_audio_input = stream.audio_input
+                    stream.audio_input = []
+                    stream.restart_counter = stream.restart_counter + 1
+
+                    stream.new_stream = True
+
+        await asyncio.gather(receive_audio(websocket, client_id), process_speech(websocket, client_id))
+
+    except WebSocketDisconnect:
+        audio_stream_manager.disconnect(websocket, client_id)
+        logger.info("Client disconnected")
+    except Exception as e:
+        logger.error(f"Error: {e}")        
 
 
 @app.websocket("/ws/{client_id}")
