@@ -69,7 +69,7 @@ config = speech.RecognitionConfig(
 streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
 
 
-def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
+async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
     with manager as stream:
         stream.audio_input = []
         audio_generator = stream.generator()
@@ -79,7 +79,10 @@ def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
         )                
 
         responses = client.streaming_recognize(streaming_config, requests)                
-        listen_print_loop(responses, stream, client_id)
+        message_generator = listen_print_loop(responses, stream, client_id)
+
+        for message in message_generator:
+            await chat_manager.broadcast(message)
 
         if stream.result_end_time > 0:
             stream.final_request_end_time = stream.is_final_end_time

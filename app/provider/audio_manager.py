@@ -221,6 +221,13 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
             stream.is_final_end_time = stream.result_end_time
             stream.last_transcript_was_final = True
 
+            yield json.dumps({
+                "type": "q&a",
+                "id": client_id,
+                "message": transcript,
+                "is_done": True,
+                "timestamp": int(round(time.time()))
+            })
             print(f"{client_id}-Final : {transcript}")
 
             if re.search(r"\b(exit|quit)\b", transcript, re.I):                
@@ -229,3 +236,10 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
         else:
             stream.last_transcript_was_final = False
             print(f"{client_id}-Transient : {transcript}")
+            yield json.dumps({
+                "type": "q&a",
+                "id": client_id,
+                "message": transcript,
+                "is_done": False,
+                "timestamp": int(round(time.time()))
+            })
