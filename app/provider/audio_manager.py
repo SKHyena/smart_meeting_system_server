@@ -184,7 +184,7 @@ class ResumableMicrophoneSocketStream:
             yield b"".join(data)
 
 
-async def listen_print_loop(responses: object, stream: object, client_id: int):
+def listen_print_loop(responses: object, stream: object, client_id: int):
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
             stream.start_time = get_current_time()
