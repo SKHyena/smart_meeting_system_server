@@ -69,6 +69,10 @@ config = speech.RecognitionConfig(
 streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
 
 
+def wrap_async_transcribe(manager, id):
+    asyncio.run(transcribe(manager, id))
+
+
 async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
     with manager as stream:
         stream.audio_input = []
@@ -289,7 +293,7 @@ async def summarize():
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)    
     threading.Thread(
-        target=transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
+        target=wrap_async_transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
     ).start()
 
     try:
