@@ -281,7 +281,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
                     for response in listen_print_loop(responses, stream):
                         logger.info(f"response : {response}")
-                        # websocket.send_text(response)
+                        websocket.send_text(response)
 
                     if stream.result_end_time > 0:
                         stream.final_request_end_time = stream.is_final_end_time
@@ -295,7 +295,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
         process_audio_thread = threading.Thread(target=process_audio, args=(client_id, ))
         process_audio_thread.start()
-        
+
         while True:    
             audio_chunk = await websocket.receive_bytes()
             logger.info(f"length of bytes : {len(audio_chunk)}")
