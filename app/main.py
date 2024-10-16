@@ -90,7 +90,7 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                 chat_manager.qa_list.append(
                     Utterance(
                         timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
-                        speaker=client_id,
+                        speaker=str(client_id),
                         text=message_dict["message"]
                     )
                 )
