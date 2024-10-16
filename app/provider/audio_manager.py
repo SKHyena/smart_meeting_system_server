@@ -3,6 +3,8 @@ import time
 import queue
 from typing import Generator
 
+from fastapi import WebSocket
+
 
 # Audio recording parameters
 STREAMING_LIMIT = 240000  # 4 minutes
@@ -129,58 +131,59 @@ class ResumableMicrophoneSocketStream:
             The data from the audio stream.
         """
     
-        data = []
+        while not self.closed:
+            data = []
 
-        if self.new_stream and self.last_audio_input:
-            chunk_time = STREAMING_LIMIT / len(self.last_audio_input)
+            if self.new_stream and self.last_audio_input:
+                chunk_time = STREAMING_LIMIT / len(self.last_audio_input)
 
-            if chunk_time != 0:
-                if self.bridging_offset < 0:
-                    self.bridging_offset = 0
+                if chunk_time != 0:
+                    if self.bridging_offset < 0:
+                        self.bridging_offset = 0
 
-                if self.bridging_offset > self.final_request_end_time:
-                    self.bridging_offset = self.final_request_end_time
+                    if self.bridging_offset > self.final_request_end_time:
+                        self.bridging_offset = self.final_request_end_time
 
-                chunks_from_ms = round(
-                    (self.final_request_end_time - self.bridging_offset)
-                    / chunk_time
-                )
+                    chunks_from_ms = round(
+                        (self.final_request_end_time - self.bridging_offset)
+                        / chunk_time
+                    )
 
-                self.bridging_offset = round(
-                    (len(self.last_audio_input) - chunks_from_ms) * chunk_time
-                )
+                    self.bridging_offset = round(
+                        (len(self.last_audio_input) - chunks_from_ms) * chunk_time
+                    )
 
-                for i in range(chunks_from_ms, len(self.last_audio_input)):
-                    data.append(self.last_audio_input[i])
+                    for i in range(chunks_from_ms, len(self.last_audio_input)):
+                        data.append(self.last_audio_input[i])
 
-            self.new_stream = False
+                self.new_stream = False
 
-        # Use a blocking get() to ensure there's at least one chunk of
-        # data, and stop iteration if the chunk is None, indicating the
-        # end of the audio stream.
-        chunk = self._buff.get()
-        self.audio_input.append(chunk)
+            # Use a blocking get() to ensure there's at least one chunk of
+            # data, and stop iteration if the chunk is None, indicating the
+            # end of the audio stream.
+            chunk = self._buff.get()
+            self.audio_input.append(chunk)
 
-        if chunk is None:
-            return
-        data.append(chunk)
-        # Now consume whatever other data's still buffered.
-        while True:
-            try:
-                chunk = self._buff.get(block=False)
+            if chunk is None:
+                return
+            data.append(chunk)
+            # Now consume whatever other data's still buffered.
+            while True:
+                try:
+                    chunk = self._buff.get(block=False)
 
-                if chunk is None:
-                    return
-                data.append(chunk)
-                self.audio_input.append(chunk)
+                    if chunk is None:
+                        return
+                    data.append(chunk)
+                    self.audio_input.append(chunk)
 
-            except queue.Empty:
-                break
+                except queue.Empty:
+                    break
 
-        yield b"".join(data)
+            yield b"".join(data)
 
 
-def listen_print_loop(responses: object, stream: object) -> Generator[str, None, None]:
+async def listen_print_loop(responses: object, stream: object, websocket: WebSocket):
     
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
@@ -218,11 +221,11 @@ def listen_print_loop(responses: object, stream: object) -> Generator[str, None,
             stream.is_final_end_time = stream.result_end_time
             stream.last_transcript_was_final = True
 
-            yield f"Final : {transcript}"
+            await websocket.send_text(f"Final : {transcript}")
 
             if re.search(r"\b(exit|quit)\b", transcript, re.I):                
                 stream.closed = True
                 break
         else:
             stream.last_transcript_was_final = False
-            yield f"Transient : {transcript}"
+            await websocket.send_text(f"Transient : {transcript}")

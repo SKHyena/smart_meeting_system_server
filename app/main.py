@@ -278,9 +278,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
                 responses = client.streaming_recognize(streaming_config, requests)                
 
-                for response in listen_print_loop(responses, stream):
-                    logger.info(f"response : {response}")
-                    await websocket.send_text(response)
+                await listen_print_loop(responses, stream, audio_stream_manager.active_connections[client_id])
 
                 if stream.result_end_time > 0:
                     stream.final_request_end_time = stream.is_final_end_time
