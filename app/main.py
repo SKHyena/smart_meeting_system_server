@@ -85,16 +85,19 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
         responses = client.streaming_recognize(streaming_config, requests)                
         message_generator = listen_print_loop(responses, stream, client_id)
 
-        for message_dict in message_generator:
-            if message_dict["is_done"]:
-                chat_manager.qa_list.append(
-                    Utterance(
-                        timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
-                        speaker=str(client_id),
-                        text=message_dict["message"]
+        try:
+            for message_dict in message_generator:
+                if message_dict["is_done"]:
+                    chat_manager.qa_list.append(
+                        Utterance(
+                            timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
+                            speaker=str(client_id),
+                            text=message_dict["message"]
+                        )
                     )
-                )
-            await chat_manager.broadcast(json.dumps(message_dict))
+                await chat_manager.broadcast(json.dumps(message_dict))
+        except:
+            logger.error("error")
 
         if stream.result_end_time > 0:
             stream.final_request_end_time = stream.is_final_end_time
@@ -262,7 +265,7 @@ async def summarize():
 
     utterances: List[Utterance] = chat_manager.qa_list.copy()
     for utterance in utterances:
-        utterance.speaker = attendee_id_name_map[utterance.speaker]
+        utterance.speaker = attendee_id_name_map[int(utterance.speaker)]
 
     summary: str = gpt_service.summarize(utterances)
     logger.info(f"Summary : \n {summary}")
@@ -311,7 +314,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
     except WebSocketDisconnect:
         audio_stream_manager.disconnect(websocket, client_id)
-        logger.info("Client disconnected")
+
+        if client_id in chat_manager.active_connections:
+            await chat_manager.send_personal_message(json.dumps({"type": "stt_error"}), client_id)            
+        logger.info(f"#{client_id} Client disconnected")
     except Exception as e:
         logger.error(f"Error: {e}")        
 
@@ -327,17 +333,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
             json_data: dict = json.loads(data)
 
             if json_data["type"] == "mic":
-                logger.info(f"{client_id} client has changed mic status : {json_data['status']}")
-
-            if json_data["type"] == "q&a" and json_data["id_done"]:                
-                logger.info(f"Q&A message: {json_data['message']}")
-                chat_manager.qa_list.append(
-                    Utterance(
-                        timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestamp"]),
-                        speaker=json_data["id"],
-                        text=json_data["message"]
-                    )
-                )
+                logger.info(f"{client_id} client has changed mic status : {json_data['status']}")            
 
             await chat_manager.broadcast(data)
 

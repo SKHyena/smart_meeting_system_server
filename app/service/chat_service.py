@@ -18,6 +18,7 @@ class ChatServiceManager:
         self.mic_status[client_id] = True
 
         await self.send_personal_message(self._build_mic_status(), client_id)
+        await self.send_personal_message(self._build_qa_content(), client_id)
 
     def disconnect(self, websocket: WebSocket, client_id: int):
         if client_id in self.active_connections:
@@ -40,6 +41,12 @@ class ChatServiceManager:
         ]
 
         return json.dumps(all_attendee_mic_status)
+    
+    def _build_qa_content(self) -> str:
+        qa_content = list(map(
+            lambda x: {"id": int(x.speaker), "timestamp": x.timestamp, "message": x.text}, self.qa_list))
+
+        return json.dumps(qa_content)
     
     def end_meeting(self) -> None:
         for client_id in self.active_connections:
