@@ -334,6 +334,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 
             if json_data["type"] == "mic":
                 logger.info(f"{client_id} client has changed mic status : {json_data['status']}")            
+            
+            if json_data["type"] == "q&a":
+                chat_manager.qa_list.append(
+                    Utterance(
+                        timestamp=TimeUtil.convert_unixtime_to_timestamp(json_data["timestmap"]),
+                        speaker=str(json_data["id"]),
+                        text=json_data["message"]
+                    )
+                )
 
             await chat_manager.broadcast(data)
 
