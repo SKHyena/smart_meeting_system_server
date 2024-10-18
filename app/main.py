@@ -75,41 +75,42 @@ def wrap_async_transcribe(manager, id):
 
 async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
     with manager as stream:
-        stream.audio_input = []
-        audio_generator = stream.generator()
+        while not stream.closed:
+            stream.audio_input = []
+            audio_generator = stream.generator()
 
-        requests = (
-            speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
-        )                
+            requests = (
+                speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
+            )                
 
-        responses = client.streaming_recognize(streaming_config, requests)                
-        message_generator = listen_print_loop(responses, stream, client_id)
+            responses = client.streaming_recognize(streaming_config, requests)                
+            message_generator = listen_print_loop(responses, stream, client_id)
 
-        try:
-            for message_dict in message_generator:
-                if message_dict["is_done"]:
-                    chat_manager.qa_list.append(
-                        Utterance(
-                            timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
-                            speaker=str(client_id),
-                            text=message_dict["message"]
+            try:
+                for message_dict in message_generator:
+                    if message_dict["is_done"]:
+                        chat_manager.qa_list.append(
+                            Utterance(
+                                timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
+                                speaker=str(client_id),
+                                text=message_dict["message"]
+                            )
                         )
-                    )
-                await chat_manager.broadcast(json.dumps(message_dict))
-        except:
-            logger.error("Transcription error occurred.")
-            if client_id in chat_manager.active_connections:
-                await chat_manager.send_personal_message(json.dumps({"type": "stt_fatal_error"}), client_id)
+                    await chat_manager.broadcast(json.dumps(message_dict))
+            except:
+                logger.error("Transcription error occurred.")
+                if client_id in chat_manager.active_connections:
+                    await chat_manager.send_personal_message(json.dumps({"type": "stt_fatal_error"}), client_id)
 
-        if stream.result_end_time > 0:
-            stream.final_request_end_time = stream.is_final_end_time
-        stream.result_end_time = 0
-        stream.last_audio_input = []
-        stream.last_audio_input = stream.audio_input
-        stream.audio_input = []
-        stream.restart_counter = stream.restart_counter + 1
+            if stream.result_end_time > 0:
+                stream.final_request_end_time = stream.is_final_end_time
+            stream.result_end_time = 0
+            stream.last_audio_input = []
+            stream.last_audio_input = stream.audio_input
+            stream.audio_input = []
+            stream.restart_counter = stream.restart_counter + 1
 
-        stream.new_stream = True
+            stream.new_stream = True
 
 
 def is_blank_or_none(value: str):
