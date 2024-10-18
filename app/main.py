@@ -97,7 +97,9 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                     )
                 await chat_manager.broadcast(json.dumps(message_dict))
         except:
-            logger.error("error")
+            logger.error("Transcription error occurred.")
+            if client_id in chat_manager.active_connections:
+                await chat_manager.send_personal_message(json.dumps({"type": "stt_fatal_error"}), client_id)
 
         if stream.result_end_time > 0:
             stream.final_request_end_time = stream.is_final_end_time
@@ -316,7 +318,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         audio_stream_manager.disconnect(websocket, client_id)
 
         if client_id in chat_manager.active_connections:
-            await chat_manager.send_personal_message(json.dumps({"type": "stt_error"}), client_id)            
+            await chat_manager.send_personal_message(json.dumps({"type": "stt_error"}), client_id)
         logger.info(f"#{client_id} Client disconnected")
     except Exception as e:
         logger.error(f"Error: {e}")        
