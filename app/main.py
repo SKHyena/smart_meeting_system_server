@@ -64,7 +64,8 @@ client = speech.SpeechClient()
 config = speech.RecognitionConfig(
     encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,  # 오디오 인코딩 방식
     sample_rate_hertz=16000,  # 샘플 레이트 (클라이언트의 마이크에 맞게 조정 가능)
-    language_code="ko-KR"  # 인식할 언어 코드
+    language_code="ko-KR",  # 인식할 언어 코드
+    model="latest_long",
 )
 streaming_config = speech.StreamingRecognitionConfig(config=config, interim_results=True)
 
