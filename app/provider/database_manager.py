@@ -107,7 +107,7 @@ class DatabaseManager:
     
     def _build_select_all_attendee_table_query(self) -> str:
         return f"""
-            SELECT * FROM attendee ORDER BY id desc
+            SELECT * FROM attendee ORDER BY id
         """
     
     def _build_select_attendee_table_query(self, id: int) -> str:

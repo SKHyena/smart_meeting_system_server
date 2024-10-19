@@ -148,7 +148,7 @@ async def reserve(
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
         
-    meeting_info: dict[str, Any] = json.loads(reserve_data)
+    meeting_info: dict[str, Any] = json.loads(reserve_data)    
     meeting_info["files"] = json.dumps(files_info, ensure_ascii=False)
     meeting_info["pt_contents"] = "Presentation contents should be updated"
     meeting_info["status"] = "회의 시작 전"
