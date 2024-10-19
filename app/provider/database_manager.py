@@ -90,7 +90,7 @@ class DatabaseManager:
     
     def _build_insert_qa_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
-            INSERT INTO meeting (speaker, timestamp, message)
+            INSERT INTO qa (speaker, timestamp, message)
             VALUES (%s, %s, %s)
         """
         params = (data["speaker"], data["timestamp"], data["message"])
