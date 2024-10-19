@@ -45,6 +45,7 @@ class ResumableMicrophoneSocketStream:
         self._num_channels = 1
         self._buff = queue.Queue()
         self.closed = True
+        self.paused = False
         self.start_time = get_current_time()
         self.restart_counter = 0
         self.audio_input = []
@@ -189,6 +190,9 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
             stream.start_time = get_current_time()
             break
+
+        if stream.paused:
+            continue
 
         if not response.results:
             continue

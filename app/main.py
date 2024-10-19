@@ -85,12 +85,18 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                 speech.StreamingRecognizeRequest(audio_content=content) for content in audio_generator
             )                
 
-            responses = client.streaming_recognize(streaming_config, requests)                
+            responses = client.streaming_recognize(streaming_config, requests)
             message_generator = listen_print_loop(responses, stream, client_id)
 
             try:
                 for message_dict in message_generator:
-                    if message_dict["is_done"]:
+                    if not message_dict["is_done"]:
+                        for attendee_id in audio_stream_manager.stream_status:
+                            if attendee_id == client_id:
+                                continue
+                            audio_stream_manager.stream_status[attendee_id].paused = True
+
+                    else:                        
                         chat_manager.qa_list.append(
                             Utterance(
                                 timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
@@ -98,6 +104,12 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                                 text=message_dict["message"]
                             )
                         )
+
+                        for attendee_id in audio_stream_manager.stream_status:
+                            if attendee_id == client_id:
+                                continue
+                            audio_stream_manager.stream_status[attendee_id].paused = False
+                            
                     await chat_manager.broadcast(json.dumps(message_dict))
             except Exception as e:
                 logger.error(f"#{client_id} Client Transcription error : {str(e)}")
