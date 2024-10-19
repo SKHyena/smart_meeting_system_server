@@ -40,13 +40,13 @@ class ChatServiceManager:
             for client_id in self.mic_status
         ]
 
-        return json.dumps(all_attendee_mic_status)
+        return json.dumps({"type": "micList", "message": all_attendee_mic_status})
     
     def _build_qa_content(self) -> str:
         qa_content = list(map(
             lambda x: {"id": int(x.speaker), "timestamp": x.timestamp, "message": x.text}, self.qa_list))
 
-        return json.dumps(qa_content)
+        return json.dumps({"type": "chatList", "message": qa_content})
     
     def end_meeting(self) -> None:
         for client_id in self.active_connections:

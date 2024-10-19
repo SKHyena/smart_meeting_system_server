@@ -62,6 +62,16 @@ class DatabaseManager:
         )
         """
     
+    def _build_create_qa_table_query(self) -> str:
+        return f"""
+        CREATE TABLE IF NOT EXISTS qa (
+            id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            speaker TEXT,
+            timestamp TEXT,
+            message TEXT
+        )
+        """
+    
     def _build_insert_meeting_table_query(self, data: dict) -> tuple[str, tuple]:
         query = """
             INSERT INTO meeting (name, start_time, end_time, room, subject, topic, files, pt_contents, status)
@@ -76,6 +86,14 @@ class DatabaseManager:
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         params = (data["meeting_name"], data["name"], data["organization"], data["position"], data["email_address"], data["role"], data["email_delivery_status"])
+        return query, params
+    
+    def _build_insert_qa_table_query(self, data: dict) -> tuple[str, tuple]:
+        query = """
+            INSERT INTO meeting (speaker, timestamp, message)
+            VALUES (%s, %s, %s)
+        """
+        params = (data["speaker"], data["timestamp"], data["message"])
         return query, params
     
     def _build_update_attendee_attendance_info_table_query(self, data: dict) -> tuple[str, tuple]:
@@ -110,6 +128,11 @@ class DatabaseManager:
             SELECT * FROM attendee ORDER BY id
         """
     
+    def _build_select_all_qa_table_query(self) -> str:
+        return f"""
+            SELECT * FROM qa ORDER BY id
+        """
+    
     def _build_select_attendee_table_query(self, id: int) -> str:
         return f"""
             SELECT * FROM attendee ORDER BY id desc WHERE id = {id}
@@ -130,6 +153,11 @@ class DatabaseManager:
     def _build_delete_all_attendee_table_query(self) -> str:
         return """
             DELETE FROM attendee
+        """
+    
+    def _build_delete_all_qa_table_query(self) -> str:
+        return """
+            DELETE FROM qa
         """
         
     def _build_drop_meeting_table_query(self) -> str:
@@ -169,6 +197,11 @@ class DatabaseManager:
         create_table_query = self._build_create_attendee_table_query()
         
         return self._execute_query(create_table_query)
+    
+    def create_qa_table(self) -> int:
+        create_table_query = self._build_create_qa_table_query()
+        
+        return self._execute_query(create_table_query)
             
     def drop_meeting_table(self) -> int:
         drop_table_query = self._build_drop_meeting_table_query()
@@ -186,6 +219,10 @@ class DatabaseManager:
 
     def insert_attendee_info_table(self, data: dict) -> None:
         query, params = self._build_insert_attendee_info_table_query(data)        
+        self._execute_commit_query(query, params)
+
+    def insert_qa_table(self, data: dict) -> None:
+        query, params = self._build_insert_qa_table_query(data)        
         self._execute_commit_query(query, params)
 
     def update_attendee_attendance_info_table(self, data: dict) -> None:
@@ -210,6 +247,11 @@ class DatabaseManager:
 
         return self._execute_select_query(select_table_query)
     
+    def select_all_qa_table(self) -> List[Any]:
+        select_table_query = self._build_select_all_qa_table_query()
+
+        return self._execute_select_query(select_table_query)
+    
     def select_attendee_table_with_id(self, id: int) -> List[Any]:
         select_table_query = self._build_select_attendee_table_query(id)
 
@@ -225,4 +267,8 @@ class DatabaseManager:
 
     def delete_all_attendee_table(self) -> None:
         query = self._build_delete_all_attendee_table_query()
+        self._execute_commit_query(query, ())
+
+    def delete_all_qa_table(self) -> None:
+        query = self._build_delete_all_qa_table_query()
         self._execute_commit_query(query, ())

@@ -42,6 +42,7 @@ db_manager = DatabaseManager(
 # db_manager.drop_attendee_table()
 db_manager.create_meeting_table()
 db_manager.create_attendee_table()
+db_manager.create_qa_table()
 
 s3_client = boto3.client(
     "s3",
@@ -276,6 +277,19 @@ async def summarize():
     db_manager.update_meeting_summary_table(summary)
 
     return {"summary": summary}
+
+@app.post("/update_qa", status_code=201)
+async def update_qa(utterances: List[Utterance]):
+    db_manager.delete_all_qa_table()
+
+    for utterance in utterances:
+        db_manager.insert_qa_table(
+            {
+                "speaker": utterance.speaker, 
+                "timestamp": utterance.timestamp,
+                "message": utterance.text,
+            }
+        )
 
 
 @app.websocket("/ws/transcribe/{client_id}")
