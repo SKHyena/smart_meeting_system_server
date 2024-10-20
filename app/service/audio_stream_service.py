@@ -1,5 +1,6 @@
 import json
 from typing import List
+from threading import Thread
 
 from fastapi import WebSocket
 
@@ -10,6 +11,7 @@ class AudioStreamServiceManager:
     def __init__(self):
         self.active_connections: dict[int, WebSocket] = {}
         self.stream_status: dict[int, ResumableMicrophoneSocketStream] = {}
+        self.stream_task: dict[int, Thread] = {}
 
     async def connect(self, websocket: WebSocket, client_id: int):
         await websocket.accept()        

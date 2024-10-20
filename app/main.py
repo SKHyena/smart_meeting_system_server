@@ -339,9 +339,11 @@ async def update_qa():
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await audio_stream_manager.connect(websocket, client_id)    
-    threading.Thread(
+    task = threading.Thread(
         target=wrap_async_transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
-    ).start()
+    )
+    task.start()
+    logger.info(f"#{client_id} thread task : {task.getName()}")
 
     try:
         while True:
