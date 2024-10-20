@@ -109,7 +109,7 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                             if attendee_id == client_id:
                                 continue
                             audio_stream_manager.stream_status[attendee_id].paused = False
-                            
+
                     await chat_manager.broadcast(json.dumps(message_dict))
             except Exception as e:
                 logger.error(f"#{client_id} Client Transcription error : {str(e)}")
@@ -290,6 +290,7 @@ async def summarize():
 
     return {"summary": summary}
 
+
 @app.post("/update_qa", status_code=201)
 async def update_qa(utterances: List[Utterance]):
     db_manager.delete_all_qa_table()
@@ -301,7 +302,24 @@ async def update_qa(utterances: List[Utterance]):
                 "timestamp": utterance.timestamp,
                 "message": utterance.text,
             }
-        )
+        )    
+
+
+@app.get("/summarize_test", status_code=201)
+async def update_qa():    
+    qa_list = db_manager.select_all_qa_table()
+
+    utterances = [
+        Utterance(
+            timestamp=x["timestamp"],
+            text=x["message"],
+            speaker=x["speaker"]
+        ) for x in qa_list
+    ]
+
+    summary: str = gpt_service.summarize(utterances)
+    logger.info(f"Summary : \n {summary}")
+    return {"summary": summary}
 
 
 @app.websocket("/ws/transcribe/{client_id}")
