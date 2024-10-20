@@ -19,6 +19,9 @@ class MailServiceManager:
         self.smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465)
         self.smtp.login(account, app_number)
 
+    def login(self, account, app_number):
+        self.smtp.login(account, app_number)
+
     def send_email(self, msg: MIMEMultipart):
         reg = "^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$"
         address: str = msg.get("To")

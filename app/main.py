@@ -241,6 +241,11 @@ async def attend(attendance: Attendance):
 
 @app.get("/mail_send/{client_id}", status_code=200)
 async def send_mail(client_id: int):
+    mail_service.login(
+        os.environ["MAIL_ACCOUNT"], 
+        os.environ["MAIL_APP_NUMBER"].replace("_", " ")
+    )
+    
     attendees = db_manager.select_attendee_table_with_id(client_id)
     summary: str = db_manager.select_all_meeting_table()[0]["summary"]
 
@@ -258,6 +263,11 @@ async def send_mail(client_id: int):
 
 @app.get("/mail_send", status_code=201)
 async def send_mail():
+    mail_service.login(
+        os.environ["MAIL_ACCOUNT"], 
+        os.environ["MAIL_APP_NUMBER"].replace("_", " ")
+    )
+
     attendees = db_manager.select_all_attendee_table()
     summary: str = db_manager.select_all_meeting_table()[0]["summary"]
 

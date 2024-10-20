@@ -189,10 +189,7 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
             stream.start_time = get_current_time()
-            break
-
-        if stream.paused:
-            continue
+            break        
 
         if not response.results:
             continue
@@ -225,6 +222,9 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
             stream.is_final_end_time = stream.result_end_time
             stream.last_transcript_was_final = True
 
+            if stream.paused:
+                continue
+
             yield {
                 "type": "q&a",
                 "id": client_id,
@@ -240,6 +240,9 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
                 break
         else:
             stream.last_transcript_was_final = False
+            if stream.paused:
+                continue
+            
             print(f"{client_id}-Transient : {transcript}")
             yield {
                 "type": "q&a",
