@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import List
 from threading import Thread
 
@@ -13,6 +14,9 @@ class AudioStreamServiceManager:
         self.stream_status: dict[int, ResumableMicrophoneSocketStream] = {}
         self.stream_task: dict[int, Thread] = {}
 
+        self.logger = logging.getLogger("uvicorn")
+        self.logger.setLevel(logging.INFO)        
+
     async def connect(self, websocket: WebSocket, client_id: int):
         await websocket.accept()        
 
@@ -22,7 +26,11 @@ class AudioStreamServiceManager:
 
         if client_id in self.stream_status:            
             self.stream_status[client_id].closed = True
-            self.stream_status.pop(client_id)
+            self.stream_status.pop(client_id)          
+
+        if client_id in self.stream_task:            
+            self.logger.info(f"{self.stream_task[client_id].getName()} status : {self.stream_task[client_id].is_alive()}")
+            self.stream_task.pop(client_id)
 
     async def send_personal_message(self, message: str, client_id: int):
         await self.active_connections[client_id].send_text(message)
