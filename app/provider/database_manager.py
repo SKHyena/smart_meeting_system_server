@@ -135,7 +135,7 @@ class DatabaseManager:
     
     def _build_select_attendee_table_query(self, id: int) -> str:
         return f"""
-            SELECT * FROM attendee ORDER BY id desc WHERE id = {id}
+            SELECT * FROM attendee WHERE id = {id}
         """
     
     def _build_delete_attendee_table_query(self, data: dict) -> tuple[str, tuple]:
