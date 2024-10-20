@@ -26,11 +26,11 @@ class MailServiceManager:
         reg = "^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$"
         address: str = msg.get("To")
 
-        if re.match(reg, address):
+        try:
             self.smtp.sendmail(self._account, address, msg.as_string())
-            self.logger.info("Mail is sent successfully.")
-        else:
-            self.logger.error("Put mail address correctly.")
+            self.logger.info(f"{address} -> Mail send is successful.")
+        except Exception as e:
+            self.logger.error(f"{address} -> Mail send was failed. Error is {e}")
     
     def build_email(self, address: str, content: str):
         msg = MIMEMultipart()
