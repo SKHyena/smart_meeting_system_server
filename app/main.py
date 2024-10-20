@@ -98,31 +98,26 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                         
                         await chat_manager.broadcast(json.dumps(message_dict))
 
-                    else:                        
-                        chat_manager.qa_list.append(
-                            Utterance(
-                                timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
-                                speaker=str(client_id),
-                                text=message_dict["message"]
+                    else:
+                        if message_dict["message"].strip() != "":
+                            chat_manager.qa_list.append(
+                                Utterance(
+                                    timestamp=TimeUtil.convert_unixtime_to_timestamp(message_dict["timestamp"]),
+                                    speaker=str(client_id),
+                                    text=message_dict["message"]
+                                )
                             )
-                        )
 
-                        await chat_manager.broadcast(json.dumps(message_dict))
+                            await chat_manager.broadcast(json.dumps(message_dict))
 
-                        await asyncio.sleep(1.5)
+                        await asyncio.sleep(2)
                         for attendee_id in audio_stream_manager.stream_status:
                             if attendee_id == client_id:
                                 continue
-                            audio_stream_manager.stream_status[attendee_id].paused = False
-                        
-                        
-                        
-
+                            audio_stream_manager.stream_status[attendee_id].paused = False                                                
                     
             except Exception as e:
                 logger.error(f"#{client_id} Client Transcription error : {str(e)}")
-                # if client_id in chat_manager.active_connections:
-                #     await chat_manager.send_personal_message(json.dumps({"type": "stt_fatal_error"}), client_id)
 
             if stream.result_end_time > 0:
                 stream.final_request_end_time = stream.is_final_end_time

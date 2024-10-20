@@ -176,7 +176,6 @@ class DatabaseManager:
             cursor = connection.cursor(pymysql.cursors.DictCursor)
             cursor.execute(select_table_query)        
             data = cursor.fetchall()
-            self.logger.info(data)
 
             return data
     
