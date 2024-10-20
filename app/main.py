@@ -342,8 +342,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     task = threading.Thread(
         target=wrap_async_transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
     )
-    task.start()
-    logger.info(f"#{client_id} thread task : {task.getName()}")
+    if client_id not in audio_stream_manager.stream_task:
+        audio_stream_manager.stream_task[client_id] = task
+        task.start()
+        logger.info(f"#{client_id} thread task : {task.getName()}")
 
     try:
         while True:
