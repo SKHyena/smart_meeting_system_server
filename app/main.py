@@ -338,11 +338,14 @@ async def update_qa():
 
 @app.websocket("/ws/transcribe/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await audio_stream_manager.connect(websocket, client_id)    
-    task = threading.Thread(
-        target=wrap_async_transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
-    )
-    if client_id not in audio_stream_manager.stream_task:
+    await audio_stream_manager.connect(websocket, client_id)
+
+    if client_id not in audio_stream_manager.active_connections:
+        audio_stream_manager.active_connections[client_id] = websocket
+        audio_stream_manager.stream_status[client_id] = ResumableMicrophoneSocketStream()
+        task = threading.Thread(
+            target=wrap_async_transcribe, args=(audio_stream_manager.stream_status[client_id], client_id)
+        )    
         audio_stream_manager.stream_task[client_id] = task
         task.start()
         logger.info(f"#{client_id} thread task : {task.getName()}")

@@ -15,8 +15,6 @@ class AudioStreamServiceManager:
 
     async def connect(self, websocket: WebSocket, client_id: int):
         await websocket.accept()        
-        self.active_connections[client_id] = websocket
-        self.stream_status[client_id] = ResumableMicrophoneSocketStream()
 
     def disconnect(self, websocket: WebSocket, client_id: int):
         if client_id in self.active_connections:
