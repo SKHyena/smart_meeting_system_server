@@ -333,6 +333,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     try:
         while True:
             audio_chunk = await websocket.receive_bytes()
+            if audio_stream_manager.stream_status[client_id].paused:
+                continue
+            
             audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
 
     except WebSocketDisconnect:
