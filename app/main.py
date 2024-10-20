@@ -280,9 +280,10 @@ async def summarize():
         attendee["id"]: attendee["name"] for attendee in attendees
     }
 
-    utterances: List[Utterance] = chat_manager.qa_list.copy()
-    for utterance in utterances:
-        utterance.speaker = attendee_id_name_map[int(utterance.speaker)]
+    utterances = [
+        Utterance(timestamp=x.timestamp, text=x.text, speaker=attendee_id_name_map[int(x.speaker)]) 
+        for x in chat_manager.qa_list
+    ]
 
     summary: str = gpt_service.summarize(utterances)
     logger.info(f"Summary : \n {summary}")
