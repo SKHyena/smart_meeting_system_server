@@ -21,7 +21,7 @@ class AudioStreamServiceManager:
             self.active_connections.pop(client_id)
 
         if client_id in self.stream_status:            
-            # self.stream_status[client_id].closed = True
+            self.stream_status[client_id].closed = True
             self.stream_status.pop(client_id)
 
     async def send_personal_message(self, message: str, client_id: int):

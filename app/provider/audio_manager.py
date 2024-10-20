@@ -8,7 +8,7 @@ from ..service.chat_service import ChatServiceManager
 
 
 # Audio recording parameters
-STREAMING_LIMIT = 7200000  # 2 hours
+STREAMING_LIMIT = 240000  # 4 minutes
 SAMPLE_RATE = 16000
 CHUNK_SIZE = 1366  # 100ms
 
@@ -243,7 +243,6 @@ def listen_print_loop(responses: object, stream: object, client_id: int):
             if stream.paused:
                 continue
 
-            print(f"{client_id}-Transient : {transcript}")
             yield {
                 "type": "q&a",
                 "id": client_id,
