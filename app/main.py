@@ -95,6 +95,8 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                             if attendee_id == client_id:
                                 continue
                             audio_stream_manager.stream_status[attendee_id].paused = True
+                        
+                        await chat_manager.broadcast(json.dumps(message_dict))
 
                     else:                        
                         chat_manager.qa_list.append(
@@ -105,12 +107,18 @@ async def transcribe(manager: ResumableMicrophoneSocketStream, client_id: int):
                             )
                         )
 
+                        await chat_manager.broadcast(json.dumps(message_dict))
+
+                        await asyncio.sleep(1.5)
                         for attendee_id in audio_stream_manager.stream_status:
                             if attendee_id == client_id:
                                 continue
                             audio_stream_manager.stream_status[attendee_id].paused = False
+                        
+                        
+                        
 
-                    await chat_manager.broadcast(json.dumps(message_dict))
+                    
             except Exception as e:
                 logger.error(f"#{client_id} Client Transcription error : {str(e)}")
                 # if client_id in chat_manager.active_connections:
@@ -333,9 +341,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     try:
         while True:
             audio_chunk = await websocket.receive_bytes()
-            if audio_stream_manager.stream_status[client_id].paused:
-                continue
-            
             audio_stream_manager.stream_status[client_id]._fill_buffer(audio_chunk)
 
     except WebSocketDisconnect:
